@@ -163,7 +163,7 @@ export default function PaymentMethods() {
             </svg>
           </div>
           <h2 className="text-2xl font-bold mb-2">No payment methods</h2>
-          <p className="text-muted-foreground mb-6">You haven't added any payment methods yet.</p>
+          <p className="text-muted-foreground mb-6">You haven&apos;t added any payment methods yet.</p>
           <Button onClick={() => setShowAddCard(true)}>Add Payment Method</Button>
         </div>
       )}

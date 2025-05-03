@@ -171,7 +171,7 @@ export default function AddressBook() {
             </svg>
           </div>
           <h2 className="text-2xl font-bold mb-2">No addresses</h2>
-          <p className="text-muted-foreground mb-6">You haven't added any addresses yet.</p>
+          <p className="text-muted-foreground mb-6">You haven&apos;t added any addresses yet.</p>
           <Button onClick={() => setShowAddAddress(true)}>Add Address</Button>
         </div>
       )}

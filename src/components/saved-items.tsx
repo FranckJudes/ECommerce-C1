@@ -93,7 +93,7 @@ export default function SavedItems() {
             </svg>
           </div>
           <h2 className="text-2xl font-bold mb-2">No saved items</h2>
-          <p className="text-muted-foreground mb-6">You haven't saved any items yet.</p>
+          <p className="text-muted-foreground mb-6">You haven&apos;t saved any items yet.</p>
           <Button asChild>
             <Link href="/products">Start Shopping</Link>
           </Button>

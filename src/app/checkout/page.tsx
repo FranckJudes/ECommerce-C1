@@ -259,7 +259,7 @@ export default function CheckoutPage() {
                     <div className="space-y-3">
                       <div className="flex gap-4">
                         <div className="w-16 h-16 bg-muted rounded-md flex-shrink-0">
-                          <Image
+                          <img
                             src="/placeholder.svg?height=64&width=64"
                             alt="Nike Air Jordan 1"
                             width={64}
@@ -280,7 +280,7 @@ export default function CheckoutPage() {
 
                       <div className="flex gap-4">
                         <div className="w-16 h-16 bg-muted rounded-md flex-shrink-0">
-                          <Image
+                          <img
                             src="/placeholder.svg?height=64&width=64"
                             alt="Adidas Yeezy"
                             width={64}

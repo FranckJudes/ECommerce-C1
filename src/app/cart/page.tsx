@@ -7,9 +7,11 @@ import { Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
+// Import direct depuis le fichier .tsx
 import { useCart } from "@/hooks/use-cart"
 
 export default function CartPage() {
+  // Destructuration avec les noms exacts définis dans le hook
   const { items, removeItem, updateQuantity, totalPrice, clearCart } = useCart()
   const [promoCode, setPromoCode] = useState("")
   const [isApplyingPromo, setIsApplyingPromo] = useState(false)

@@ -2,7 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 
-export default function RelatedProducts({ productId }: { productId: string }) {
+export default function RelatedProducts({  }: { productId: string }) {//productId
   // In a real app, these would be fetched from an API based on the productId
   const products = [
     {

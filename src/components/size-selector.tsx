@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 
-export default function SizeSelector({ productId }: { productId: string }) {
+export default function SizeSelector({  }: { productId: string }) {//productId
   // In a real app, these would be fetched from an API based on the productId
   const sizes = [
     { size: "US 7", inStock: true },

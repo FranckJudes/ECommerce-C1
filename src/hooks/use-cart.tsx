@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 
+// Définition du type CartItem
 export type CartItem = {
   id: string
   name: string
@@ -12,18 +13,21 @@ export type CartItem = {
   quantity: number
 }
 
-type CartContextType = {
+// Interface du contexte avec EXACTEMENT les mêmes noms que dans cart/page.tsx
+export interface CartContextType {
   items: CartItem[]
   addItem: (item: CartItem) => void
-  removeItem: (id: string) => void
-  updateQuantity: (id: string, quantity: number) => void
-  clearCart: () => void
+  removeItem: (id: string) => void // Utilisé dans cart/page.tsx
+  updateQuantity: (id: string, quantity: number) => void // Utilisé dans cart/page.tsx
+  clearCart: () => void // Utilisé dans cart/page.tsx
   itemCount: number
-  totalPrice: number
+  totalPrice: number // Utilisé dans cart/page.tsx
 }
 
+// Création du contexte avec le type correct
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
+// Provider du panier
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
 
@@ -48,6 +52,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [items])
 
+  // Ajouter un article au panier
   const addItem = (newItem: CartItem) => {
     setItems((prevItems) => {
       // Vérifier si l'article existe déjà dans le panier
@@ -67,10 +72,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     })
   }
 
+  // Supprimer un article du panier
   const removeItem = (id: string) => {
     setItems((prevItems) => prevItems.filter((item) => item.id !== id))
   }
 
+  // Mettre à jour la quantité d'un article
   const updateQuantity = (id: string, quantity: number) => {
     if (quantity <= 0) {
       removeItem(id)
@@ -80,31 +87,32 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prevItems) => prevItems.map((item) => (item.id === id ? { ...item, quantity } : item)))
   }
 
+  // Vider le panier
   const clearCart = () => {
     setItems([])
   }
 
+  // Calculer le nombre total d'articles
   const itemCount = items.reduce((total, item) => total + item.quantity, 0)
 
+  // Calculer le prix total
   const totalPrice = items.reduce((total, item) => total + item.price * item.quantity, 0)
 
-  return (
-    <CartContext.Provider
-      value={{
-        items,
-        addItem,
-        removeItem,
-        updateQuantity,
-        clearCart,
-        itemCount,
-        totalPrice,
-      }}
-    >
-      {children}
-    </CartContext.Provider>
-  )
+  // Valeur du contexte
+  const value: CartContextType = {
+    items,
+    addItem,
+    removeItem,
+    updateQuantity,
+    clearCart,
+    itemCount,
+    totalPrice,
+  }
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }
 
+// Hook pour utiliser le panier
 export function useCart() {
   const context = useContext(CartContext)
   if (context === undefined) {

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useParams } from "next/navigation"
 import { ChevronRight, Heart, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -12,14 +13,18 @@ import { Label } from "@/components/ui/label"
 import { useCart } from "@/hooks/use-cart"
 import { toast } from "@/hooks/use-toast"
 
-export default function ProductPage({ params }: { params: { id: string } }) {
+export default function ProductPage() {
+  // Utiliser useParams au lieu de props.params
+  const params = useParams()
+  const productId = params.id as string
+
   const [selectedSize, setSelectedSize] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const { addItem } = useCart()
 
   // Dans une application réelle, ces données seraient récupérées depuis une API
   const product = {
-    id: params.id,
+    id: productId,
     name: "Nike Air Jordan 1 Retro High OG 'Chicago'",
     price: 170,
     brand: "Nike",
@@ -191,8 +196,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           <p>{product.description}</p>
           <p className="mt-4">
             La Air Jordan 1 est la première chaussure signature de Michael Jordan, conçue par Peter Moore et sortie en
-            1985. Elle a révolutionné l&apos;industrie des sneakers et reste l&apos;une des silhouettes les plus emblématiques et
-            recherchées à ce jour.
+            1985. Elle a révolutionné l&apos;industrie des sneakers et reste l&apos;une des silhouettes les plus
+            emblématiques et recherchées à ce jour.
           </p>
         </TabsContent>
         <TabsContent value="details">

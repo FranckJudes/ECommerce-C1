@@ -165,7 +165,7 @@ export default function OrderHistory() {
             </svg>
           </div>
           <h2 className="text-2xl font-bold mb-2">No orders yet</h2>
-          <p className="text-muted-foreground mb-6">You haven't placed any orders yet.</p>
+          <p className="text-muted-foreground mb-6">You haven&apos;t placed any orders yet.</p>
           <Button asChild>
             <Link href="/products">Start Shopping</Link>
           </Button>

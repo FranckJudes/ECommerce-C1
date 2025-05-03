@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-export default function ProductReviews({ productId }: { productId: string }) {
+export default function ProductReviews({ }: { productId: string }) {//productId 
   const [showReviewForm, setShowReviewForm] = useState(false)
 
   // In a real app, these would be fetched from an API based on the productId

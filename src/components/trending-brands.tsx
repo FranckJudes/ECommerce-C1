@@ -1,47 +1,42 @@
-import Link from "next/link"
-import Image from "next/image"
-import { Card, CardContent } from "@/components/ui/card"
+// components/TrendingBrands.tsx
+"use client";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { Card, CardContent } from "@/components/ui/card";
+import { getBrands } from "../../lib/api";
+
+interface Brand {
+  id: string;
+  name: string;
+  image: string;
+  productCount: number;
+}
 
 export default function TrendingBrands() {
-  // In a real app, this would be fetched from an API
-  const brands = [
-    {
-      id: "1",
-      name: "Nike",
-      image: "/placeholder.svg?height=100&width=100",
-      productCount: 120,
-    },
-    {
-      id: "2",
-      name: "Adidas",
-      image: "/placeholder.svg?height=100&width=100",
-      productCount: 95,
-    },
-    {
-      id: "3",
-      name: "New Balance",
-      image: "/placeholder.svg?height=100&width=100",
-      productCount: 78,
-    },
-    {
-      id: "4",
-      name: "Jordan",
-      image: "/placeholder.svg?height=100&width=100",
-      productCount: 110,
-    },
-    {
-      id: "5",
-      name: "Puma",
-      image: "/placeholder.svg?height=100&width=100",
-      productCount: 65,
-    },
-    {
-      id: "6",
-      name: "Reebok",
-      image: "/placeholder.svg?height=100&width=100",
-      productCount: 42,
-    },
-  ]
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const data = await getBrands();
+        console.log("Données des marques:", data); // Pour déboguer
+        setBrands(data);
+        setLoading(false);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Impossible de charger les marques";
+        console.error("Erreur dans TrendingBrands:", error);
+        setError(errorMessage);
+        setLoading(false);
+      }
+    };
+    fetchBrands();
+  }, []);
+
+  if (loading) return <p>Chargement des marques...</p>;
+  if (error) return <p>Erreur : {error}</p>;
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -53,11 +48,11 @@ export default function TrendingBrands() {
                 <Image src={brand.image || "/placeholder.svg"} alt={brand.name} fill className="object-contain" />
               </div>
               <h3 className="font-medium text-center">{brand.name}</h3>
-              <p className="text-xs text-muted-foreground text-center">{brand.productCount} Products</p>
+              <p className="text-xs text-muted-foreground text-center">{brand.productCount} Produits</p>
             </CardContent>
           </Card>
         </Link>
       ))}
     </div>
-  )
+  );
 }

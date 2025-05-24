@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button"
 import FeaturedProducts from "@/components/featured-products"
-import TrendingBrands from "@/components/trending-brands"
+// import TrendingBrands from "@/components/trending-brands"
 import PopularCategories from "@/components/popular-categories"
 import HeroBanner from "@/components/hero-banner"
 import NewsletterSignup from "@/components/newsletter-signup"
@@ -28,7 +28,7 @@ export default function Home() {
           <h2 className="text-3xl font-bold">Trending Brands</h2>
           <Button variant="outline">View All Brands</Button>
         </div>
-        <TrendingBrands />
+        {/* <TrendingBrands /> */}
       </section>
 
       <NewsletterSignup />

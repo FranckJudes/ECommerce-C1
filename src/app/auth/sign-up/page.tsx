@@ -1,83 +1,133 @@
-"use client"
-
-import type React from "react"
-
-import { useState } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { Checkbox } from "@/components/ui/checkbox"
+// app/auth/sign-up/page.tsx
+"use client";
+import type React from "react";
+import { useState } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "react-toastify";
+import { useAuth } from "../../../../lib/auth-context";
 
 export default function SignUpPage() {
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const { register } = useAuth();
 
   const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    if (!termsAccepted) {
+      toast.error("Vous devez accepter les conditions d'utilisation");
+      return;
+    }
+    setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      // Redirect to home page after successful sign up
-      window.location.href = "/"
-    }, 1500)
-  }
+    try {
+      await register(name, email, password, passwordConfirmation);
+      toast.success("Inscription réussie !");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error(error.message || "Erreur lors de l'inscription");
+      } else {
+        toast.error("Erreur lors de l'inscription");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="container max-w-md px-4 py-16">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold">Create an Account</h1>
-        <p className="text-muted-foreground mt-2">Join SneakerX to buy and sell authentic sneakers</p>
+        <h1 className="text-3xl font-bold">Créer un compte</h1>
+        <p className="text-muted-foreground mt-2">Rejoignez SneakerX pour acheter et vendre des sneakers authentiques</p>
       </div>
 
       <form onSubmit={handleSignUp} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="firstName">First Name</Label>
-            <Input id="firstName" placeholder="John" required />
+            <Label htmlFor="firstName">Prénom</Label>
+            <Input
+              id="firstName"
+              placeholder="John"
+              value={name.split(" ")[0] || ""}
+              onChange={(e) => setName(e.target.value + (name.split(" ")[1] || ""))}
+              required
+            />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lastName">Last Name</Label>
-            <Input id="lastName" placeholder="Doe" required />
+            <Label htmlFor="lastName">Nom</Label>
+            <Input
+              id="lastName"
+              placeholder="Doe"
+              value={name.split(" ")[1] || ""}
+              onChange={(e) => setName((name.split(" ")[0] || "") + " " + e.target.value)}
+              required
+            />
           </div>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" placeholder="john.doe@example.com" required />
+          <Input
+            id="email"
+            type="email"
+            placeholder="john.doe@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <Input id="password" type="password" placeholder="••••••••" required />
+          <Label htmlFor="password">Mot de passe</Label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
           <p className="text-xs text-muted-foreground">
-            Password must be at least 8 characters long and include a number and a special character.
+            Le mot de passe doit contenir au moins 8 caractères, un chiffre et un caractère spécial.
           </p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirm Password</Label>
-          <Input id="confirmPassword" type="password" placeholder="••••••••" required />
+          <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+          <Input
+            id="confirmPassword"
+            type="password"
+            placeholder="••••••••"
+            value={passwordConfirmation}
+            onChange={(e) => setPasswordConfirmation(e.target.value)}
+            required
+          />
         </div>
 
         <div className="flex items-start space-x-2 pt-2">
-          <Checkbox id="terms" />
+          <Checkbox id="terms" checked={termsAccepted} onCheckedChange={(checked) => setTermsAccepted(!!checked)} />
           <Label htmlFor="terms" className="text-sm leading-tight">
-            I agree to the{" "}
+            J&apos;accepte les{" "}
             <Link href="/terms" className="text-primary hover:underline">
-              Terms of Service
+              Conditions d&aposutilisation
             </Link>{" "}
-            and{" "}
+            et la{" "}
             <Link href="/privacy" className="text-primary hover:underline">
-              Privacy Policy
+              Politique de confidentialité
             </Link>
           </Label>
         </div>
 
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Creating account..." : "Create Account"}
+          {isLoading ? "Création en cours..." : "Créer un compte"}
         </Button>
       </form>
 
@@ -87,7 +137,7 @@ export default function SignUpPage() {
             <Separator className="w-full" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+            <span className="bg-background px-2 text-muted-foreground">Ou continuer avec</span>
           </div>
         </div>
 
@@ -126,11 +176,11 @@ export default function SignUpPage() {
       </div>
 
       <p className="text-center text-sm mt-8">
-        Already have an account?{" "}
+        Déjà un compte ?{" "}
         <Link href="/auth/sign-in" className="text-primary hover:underline">
-          Sign in
+          Se connecter
         </Link>
       </p>
     </div>
-  )
+  );
 }

@@ -1,107 +1,66 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import Link from "next/link"
-import Image from "next/image"
+// app/new-releases/page.tsx
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "@/hooks/use-toast";
+import { getProducts } from "../../../lib/api";
+
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+  image: string;
+  brand: string;
+  release_date: string; // Format ISO, ex: "2023-10-15"
+  is_new: boolean;
+  is_upcoming: boolean;
+}
 
 export default function NewReleasesPage() {
-  // Dans une application réelle, ces données seraient récupérées depuis une API
-  const newReleases = [
-    {
-      id: "1",
-      name: "Nike Air Jordan 1 Retro High OG 'Chicago Reimagined'",
-      price: 180,
-      image: "/placeholder.svg?height=300&width=300",
-      brand: "Nike",
-      releaseDate: "2023-10-15",
-      isNew: true,
-    },
-    {
-      id: "2",
-      name: "Adidas Yeezy Boost 350 V2 'Slate'",
-      price: 230,
-      image: "/placeholder.svg?height=300&width=300",
-      brand: "Adidas",
-      releaseDate: "2023-10-12",
-      isNew: true,
-    },
-    {
-      id: "3",
-      name: "New Balance 990v6 'Grey Day'",
-      price: 200,
-      image: "/placeholder.svg?height=300&width=300",
-      brand: "New Balance",
-      releaseDate: "2023-10-08",
-      isNew: true,
-    },
-    {
-      id: "4",
-      name: "Nike Dunk Low 'Halloween'",
-      price: 120,
-      image: "/placeholder.svg?height=300&width=300",
-      brand: "Nike",
-      releaseDate: "2023-10-05",
-      isNew: true,
-    },
-    {
-      id: "5",
-      name: "Air Jordan 4 'Thunder'",
-      price: 210,
-      image: "/placeholder.svg?height=300&width=300",
-      brand: "Jordan",
-      releaseDate: "2023-09-30",
-      isNew: true,
-    },
-    {
-      id: "6",
-      name: "Adidas Forum Low 'Bad Bunny'",
-      price: 160,
-      image: "/placeholder.svg?height=300&width=300",
-      brand: "Adidas",
-      releaseDate: "2023-09-28",
-      isNew: true,
-    },
-  ]
+  const [newReleases, setNewReleases] = useState<Product[]>([]);
+  const [upcomingReleases, setUpcomingReleases] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const upcomingReleases = [
-    {
-      id: "7",
-      name: "Nike SB Dunk Low 'Mummy'",
-      price: 120,
-      image: "/placeholder.svg?height=300&width=300",
-      brand: "Nike",
-      releaseDate: "2023-10-25",
-      isUpcoming: true,
-    },
-    {
-      id: "8",
-      name: "Air Jordan 11 'Gratitude'",
-      price: 225,
-      image: "/placeholder.svg?height=300&width=300",
-      brand: "Jordan",
-      releaseDate: "2023-11-11",
-      isUpcoming: true,
-    },
-    {
-      id: "9",
-      name: "Adidas Samba OG 'Black White'",
-      price: 100,
-      image: "/placeholder.svg?height=300&width=300",
-      brand: "Adidas",
-      releaseDate: "2023-10-30",
-      isUpcoming: true,
-    },
-    {
-      id: "10",
-      name: "New Balance 550 'Green Yellow'",
-      price: 120,
-      image: "/placeholder.svg?height=300&width=300",
-      brand: "New Balance",
-      releaseDate: "2023-11-05",
-      isUpcoming: true,
-    },
-  ]
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        // Récupérer les nouvelles sorties
+        const newProducts = await getProducts({ is_new: true });
+        setNewReleases(newProducts.data || []);
+
+        // Récupérer les sorties à venir
+        const upcomingProducts = await getProducts({ is_upcoming: true });
+        setUpcomingReleases(upcomingProducts.data || []);
+
+        setLoading(false);
+      } catch (err: unknown) {
+        console.error("Erreur lors du chargement des produits :", err);
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("Impossible de charger les produits");
+        }
+        setLoading(false);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les produits",
+          variant: "destructive",
+        });
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  if (loading) return <div className="container px-4 py-8">Chargement...</div>;
+  if (error) return <div className="container px-4 py-8">Erreur : {error}</div>;
 
   return (
     <div className="container px-4 py-8">
@@ -119,73 +78,85 @@ export default function NewReleasesPage() {
         </TabsList>
 
         <TabsContent value="new">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {newReleases.map((product) => (
-              <Link key={product.id} href={`/products/${product.id}`} className="group">
-                <Card className="overflow-hidden border-none shadow-sm transition-all hover:shadow-md">
-                  <CardContent className="p-0">
-                    <div className="relative aspect-square overflow-hidden bg-muted">
-                      <Image
-                        src={product.image || "/placeholder.svg"}
-                        alt={product.name}
-                        fill
-                        className="object-cover transition-transform group-hover:scale-105"
-                      />
-                      <Badge className="absolute top-2 right-2">Nouveau</Badge>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex flex-col items-start p-4">
-                    <p className="text-sm text-muted-foreground">{product.brand}</p>
-                    <h3 className="font-medium line-clamp-1 group-hover:text-primary transition-colors">
-                      {product.name}
-                    </h3>
-                    <div className="flex items-center justify-between w-full mt-1">
-                      <p className="font-bold">{product.price} €</p>
-                      <p className="text-xs text-muted-foreground">
-                        Sortie le {new Date(product.releaseDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </CardFooter>
-                </Card>
-              </Link>
-            ))}
-          </div>
+          {newReleases.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-lg">Aucune nouvelle sortie pour le moment.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {newReleases.map((product) => (
+                <Link key={product.id} href={`/products/${product.id}`} className="group">
+                  <Card className="overflow-hidden border-none shadow-sm transition-all hover:shadow-md">
+                    <CardContent className="p-0">
+                      <div className="relative aspect-square overflow-hidden bg-muted">
+                        <Image
+                          src={product.image || "/placeholder.svg"}
+                          alt={product.name}
+                          fill
+                          className="object-cover transition-transform group-hover:scale-105"
+                        />
+                        <Badge className="absolute top-2 right-2">Nouveau</Badge>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex flex-col items-start p-4">
+                      <p className="text-sm text-muted-foreground">{product.brand}</p>
+                      <h3 className="font-medium line-clamp-1 group-hover:text-primary transition-colors">
+                        {product.name}
+                      </h3>
+                      <div className="flex items-center justify-between w-full mt-1">
+                        <p className="font-bold">{product.price} €</p>
+                        <p className="text-xs text-muted-foreground">
+                          Sortie le {new Date(product.release_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </CardFooter>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="upcoming">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {upcomingReleases.map((product) => (
-              <Link key={product.id} href={`/products/${product.id}`} className="group">
-                <Card className="overflow-hidden border-none shadow-sm transition-all hover:shadow-md">
-                  <CardContent className="p-0">
-                    <div className="relative aspect-square overflow-hidden bg-muted">
-                      <Image
-                        src={product.image || "/placeholder.svg"}
-                        alt={product.name}
-                        fill
-                        className="object-cover transition-transform group-hover:scale-105"
-                      />
-                      <Badge variant="secondary" className="absolute top-2 right-2">
-                        À Venir
-                      </Badge>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex flex-col items-start p-4">
-                    <p className="text-sm text-muted-foreground">{product.brand}</p>
-                    <h3 className="font-medium line-clamp-1 group-hover:text-primary transition-colors">
-                      {product.name}
-                    </h3>
-                    <div className="flex items-center justify-between w-full mt-1">
-                      <p className="font-bold">{product.price} €</p>
-                      <p className="text-xs text-muted-foreground">
-                        Sortie le {new Date(product.releaseDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </CardFooter>
-                </Card>
-              </Link>
-            ))}
-          </div>
+          {upcomingReleases.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-lg">Aucune sortie à venir pour le moment.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {upcomingReleases.map((product) => (
+                <Link key={product.id} href={`/products/${product.id}`} className="group">
+                  <Card className="overflow-hidden border-none shadow-sm transition-all hover:shadow-md">
+                    <CardContent className="p-0">
+                      <div className="relative aspect-square overflow-hidden bg-muted">
+                        <Image
+                          src={product.image || "/placeholder.svg"}
+                          alt={product.name}
+                          fill
+                          className="object-cover transition-transform group-hover:scale-105"
+                        />
+                        <Badge variant="secondary" className="absolute top-2 right-2">
+                          À Venir
+                        </Badge>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex flex-col items-start p-4">
+                      <p className="text-sm text-muted-foreground">{product.brand}</p>
+                      <h3 className="font-medium line-clamp-1 group-hover:text-primary transition-colors">
+                        {product.name}
+                      </h3>
+                      <div className="flex items-center justify-between w-full mt-1">
+                        <p className="font-bold">{product.price} €</p>
+                        <p className="text-xs text-muted-foreground">
+                          Sortie le {new Date(product.release_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </CardFooter>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
@@ -197,5 +168,5 @@ export default function NewReleasesPage() {
         <Button>S&apos;inscrire aux alertes</Button>
       </div>
     </div>
-  )
+  );
 }

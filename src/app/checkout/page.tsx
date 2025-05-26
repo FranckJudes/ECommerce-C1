@@ -68,7 +68,7 @@ export default function CheckoutPage() {
   });
   const [shippingMethod, setShippingMethod] = useState<"standard" | "express">("standard");
   const [isLoading, setIsLoading] = useState(false);
-  const { cart, clearCart } = useCart() as { cart: CartItem[]; clearCart: () => void };
+  const { cart, clearCart } = useCart() as unknown as { cart: CartItem[]; clearCart: () => void };
   const { user } = useAuth();
   const router = useRouter();
 
@@ -212,7 +212,7 @@ export default function CheckoutPage() {
     } catch (error: unknown) {
       toast({
         title: "Erreur lors de la commande",
-        description: (error as any)?.message || "Une erreur s'est produite lors de la création de la commande.",
+        description: (error as Error)?.message || "Une erreur s'est produite lors de la création de la commande.",
         variant: "destructive",
       });
     } finally {

@@ -296,3 +296,7 @@
 //     </div>
 //   );
 // }
+
+export default function EditProductPage() {
+  return <div>Page de modification de produit (en cours de développement)</div>;
+}

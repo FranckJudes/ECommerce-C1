@@ -410,3 +410,7 @@
 //     </div>
 //   );
 // }
+
+export default function AdminProductsPage() {
+  return <div>Page temporaire</div>;
+}

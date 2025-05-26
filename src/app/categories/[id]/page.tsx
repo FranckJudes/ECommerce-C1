@@ -23,21 +23,6 @@ interface Product {
   updated_at: string;
 }
 
-interface ProductsResponse {
-  current_page: number;
-  data: Product[];
-  first_page_url: string;
-  from: number;
-  last_page: number;
-  last_page_url: string;
-  links: { url: string; label: string; active: boolean }[];
-  next_page_url: string | null;
-  path: string;
-  per_page: number;
-  prev_page_url: string | null;
-  to: number;
-  total: number;
-}
 
 export default function CategoryProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -49,7 +34,7 @@ export default function CategoryProductsPage() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const data: ProductsResponse = await getCategoryProducts(categoryId);
+        const data = await getCategoryProducts(Number(categoryId));
         setProducts(data.data);
         setLoading(false);
       } catch (error: unknown) {

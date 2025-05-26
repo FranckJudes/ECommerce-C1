@@ -1,17 +1,13 @@
 // components/TrendingBrands.tsx
 "use client";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
-import { getBrands } from "../../lib/api";
-
-interface Brand {
-  id: string;
-  name: string;
-  image: string;
-  productCount: number;
-}
+import { getBrands, Brand } from "../../lib/api";
+import { AxiosError } from "axios";
+import { toast } from "@/hooks/use-toast";
 
 export default function TrendingBrands() {
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -20,16 +16,24 @@ export default function TrendingBrands() {
 
   useEffect(() => {
     const fetchBrands = async () => {
+      setLoading(true);
       try {
-        const data = await getBrands();
-        console.log("Données des marques:", data); // Pour déboguer
-        setBrands(data);
+        const response = await getBrands();
+        console.log("Données des marques:", response); // Pour déboguer
+        setBrands(response.data || []);
         setLoading(false);
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "Impossible de charger les marques";
+        const errorMessage = error instanceof AxiosError && error.response?.data?.message
+          ? error.response.data.message
+          : "Impossible de charger les marques";
         console.error("Erreur dans TrendingBrands:", error);
         setError(errorMessage);
         setLoading(false);
+        toast({
+          title: "Erreur",
+          description: errorMessage,
+          variant: "destructive",
+        });
       }
     };
     fetchBrands();
@@ -48,7 +52,7 @@ export default function TrendingBrands() {
                 <Image src={brand.image || "/placeholder.svg"} alt={brand.name} fill className="object-contain" />
               </div>
               <h3 className="font-medium text-center">{brand.name}</h3>
-              <p className="text-xs text-muted-foreground text-center">{brand.productCount} Produits</p>
+              <p className="text-xs text-muted-foreground text-center">{brand.product_count} Produits</p>
             </CardContent>
           </Card>
         </Link>

@@ -250,14 +250,12 @@ export default function ProductsPage() {
             {filteredProducts.map((product) => (
               <ProductCard
                 key={product.id}
-                id={product.id.toString()}
+                id={product.id}
                 name={product.name}
                 price={product.price}
                 image={product.image}
                 brand={categories.find((c) => c.id === product.category_id)?.name || "Inconnue"}
-                isNew={product.featured}
-                isSale={false} // À ajuster si l'API fournit un champ pour les soldes
-                salePrice={undefined}
+                is_new={product.featured}
               />
             ))}
           </div>

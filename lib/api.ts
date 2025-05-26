@@ -716,4 +716,76 @@ export const getUserPaymentHistory = async (userId: number) => {
   return response.data;
 };
 
+
+
+//nouveau endpoint
+
+// lib/api.ts (ajouts à la fin du fichier)
+
+// Avis
+export const getReviews = async (productId: string) => {
+  interface ReviewsResponse {
+    data: Array<{
+      id: string;
+      user: {
+        name: string;
+        avatar: string;
+      };
+      rating: number;
+      date: string;
+      title: string;
+      content: string;
+    }>;
+    [key: string]: unknown;
+  }
+  const response = await api.get<ReviewsResponse>(`/products/${productId}/reviews`);
+  return response.data;
+};
+
+export const submitReview = async (productId: string, data: {
+  rating: number;
+  title: string;
+  content: string;
+}) => {
+  const response = await api.post(`/reviews`, { product_id: productId, ...data });
+  return response.data;
+};
+
+// Produits similaires
+export const getRelatedProducts = async (productId: string) => {
+  interface RelatedProductsResponse {
+    data: Array<{
+      id: number;
+      name: string;
+      price: number;
+      image: string;
+      brand: string;
+    }>;
+    [key: string]: unknown;
+  }
+  const response = await api.get<RelatedProductsResponse>(`/products/${productId}/related`);
+  return response.data;
+};
+
+// Articles favoris
+export const getSavedItems = async () => {
+  interface SavedItemsResponse {
+    data: Array<{
+      id: string;
+      name: string;
+      price: number;
+      image: string;
+      brand: string;
+      inStock: boolean;
+    }>;
+    [key: string]: unknown;
+  }
+  const response = await api.get<SavedItemsResponse>("/saved-items");
+  return response.data;
+};
+
+export const removeSavedItem = async (id: string) => {
+  const response = await api.delete(`/saved-items/${id}`);
+  return response.data;
+};
 export default api;

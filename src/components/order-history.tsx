@@ -1,72 +1,62 @@
-import Link from "next/link"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { getOrders } from "../../lib/api";
+import { AxiosError } from "axios";
+import { toast } from "@/hooks/use-toast";
+
+interface OrderItem {
+  id: string;
+  name: string;
+  price: number;
+  size: string;
+  color: string;
+  quantity: number;
+  image: string;
+}
+
+interface Order {
+  id: string;
+  date: string;
+  status: string;
+  total: number;
+  items: OrderItem[];
+}
 
 export default function OrderHistory() {
-  // In a real app, this would be fetched from an API
-  const orders = [
-    {
-      id: "ORD-12345",
-      date: "2023-05-15",
-      status: "Delivered",
-      total: 390,
-      items: [
-        {
-          id: "1",
-          name: "Nike Air Jordan 1 Retro High OG",
-          price: 170,
-          size: "US 10",
-          color: "Chicago",
-          quantity: 1,
-          image: "/placeholder.svg?height=80&width=80",
-        },
-        {
-          id: "2",
-          name: "Adidas Yeezy Boost 350 V2",
-          price: 220,
-          size: "US 9.5",
-          color: "Zebra",
-          quantity: 1,
-          image: "/placeholder.svg?height=80&width=80",
-        },
-      ],
-    },
-    {
-      id: "ORD-12346",
-      date: "2023-04-22",
-      status: "Shipped",
-      total: 170,
-      items: [
-        {
-          id: "1",
-          name: "Nike Air Jordan 1 Retro High OG",
-          price: 170,
-          size: "US 10",
-          color: "Chicago",
-          quantity: 1,
-          image: "/placeholder.svg?height=80&width=80",
-        },
-      ],
-    },
-    {
-      id: "ORD-12347",
-      date: "2023-03-10",
-      status: "Delivered",
-      total: 220,
-      items: [
-        {
-          id: "2",
-          name: "Adidas Yeezy Boost 350 V2",
-          price: 220,
-          size: "US 9.5",
-          color: "Zebra",
-          quantity: 1,
-          image: "/placeholder.svg?height=80&width=80",
-        },
-      ],
-    },
-  ]
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      setLoading(true);
+      try {
+        const data = await getOrders();
+        setOrders(data.data || []);
+        setLoading(false);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof AxiosError && error.response?.data?.message
+          ? error.response.data.message
+          : "Impossible de charger les commandes";
+        setError(errorMessage);
+        setLoading(false);
+        toast({
+          title: "Erreur",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    };
+    fetchOrders();
+  }, []);
+
+  if (loading) return <div className="text-center py-12">Chargement...</div>;
+  if (error) return <div className="text-center py-12">Erreur : {error}</div>;
 
   return (
     <div className="space-y-6">
@@ -172,5 +162,5 @@ export default function OrderHistory() {
         </div>
       )}
     </div>
-  )
+  );
 }

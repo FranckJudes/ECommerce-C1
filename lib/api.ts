@@ -1,3 +1,4 @@
+// // lib/api.ts
 // import axios, { AxiosInstance, AxiosResponse } from "axios";
 
 // const api: AxiosInstance = axios.create({
@@ -20,6 +21,66 @@
 //     return Promise.reject(error);
 //   }
 // );
+
+// // Interface pour les produits de l'API (utilisée par products/page.tsx et products/[id]/page.tsx)
+// interface Product {
+//   id: number;
+//   name: string;
+//   description: string;
+//   price: number;
+//   stock: number;
+//   category_id: number;
+//   image: string;
+//   featured: boolean;
+//   coming_soon: boolean;
+//   created_at: string;
+//   updated_at: string;
+// }
+
+// // Interface pour les catégories
+// interface Category {
+//   id: number;
+//   name: string;
+//   description: string;
+//   created_at: string;
+//   updated_at: string;
+// }
+
+// // Interface pour les produits côté client (utilisée par new-releases/page.tsx)
+// export interface ClientProduct {
+//   id: number;
+//   name: string;
+//   price: number;
+//   image: string;
+//   brand: string;
+//   release_date: string;
+//   is_new: boolean;
+//   is_upcoming: boolean;
+// }
+
+// // Fonction pour mapper Product vers ClientProduct
+// const mapProductToClientProduct = async (product: Product): Promise<ClientProduct> => {
+//   // Récupérer les catégories pour mapper category_id à un nom
+//   const categories = await getCategories();
+//   const category = categories.find((c: Category) => c.id === product.category_id);
+
+//   // Déterminer si le produit est "nouveau" (créé dans les 30 derniers jours)
+//   const createdDate = new Date(product.created_at);
+//   const thirtyDaysAgo = new Date();
+//   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+//   const isNew = createdDate >= thirtyDaysAgo;
+
+//   return {
+//     id: product.id,
+//     name: product.name,
+//     price: product.price,
+//     image: product.image || "/placeholder.svg",
+//     brand: category ? category.name : "Inconnue",
+//     release_date: product.created_at,
+//     is_new: isNew,
+//     is_upcoming: product.coming_soon,
+//   };
+// };
 
 // // Authentification
 // export const login = async (email: string, password: string) => {
@@ -85,36 +146,152 @@
 //   return response.data;
 // };
 
-// // Catégories
-// export const getCategories = async () => {
-//   const response = await api.get("/categories");
+// // Produits
+// export const getProducts = async (params: {
+//   page?: number;
+//   per_page?: number;
+//   search?: string;
+//   sort_by?: string;
+//   sort_direction?: string;
+// } = {}) => {
+//   interface ProductsResponse {
+//     data: Product[];
+//     page?: number;
+//     per_page?: number;
+//     total?: number;
+//     next_page_url?: string;
+//     [key: string]: unknown;
+//   }
+//   const response = await api.get<ProductsResponse>("/products", { params });
 //   return response.data;
 // };
 
-// export const getCategoryProducts = async (categoryId: string) => {
-//   const response = await api.get(`/categories/${categoryId}/products`);
-//   return response.data;
+// export const getClientProducts = async (params: {
+//   page?: number;
+//   per_page?: number;
+//   search?: string;
+//   sort_by?: string;
+//   sort_direction?: string;
+//   is_new?: boolean;
+//   is_upcoming?: boolean;
+// } = {}) => {
+//   const response = await getProducts(params);
+//   const products = response.data;
+
+//   // Mapper vers ClientProduct
+//   const clientProducts = await Promise.all(products.map(mapProductToClientProduct));
+
+//   // Filtrer côté client si is_new ou is_upcoming sont spécifiés
+//   let filteredProducts = clientProducts;
+//   if (params.is_new) {
+//     filteredProducts = filteredProducts.filter((p) => p.is_new);
+//   }
+//   if (params.is_upcoming) {
+//     filteredProducts = filteredProducts.filter((p) => p.is_upcoming);
+//   }
+
+//   return { ...response, data: filteredProducts };
 // };
 
-// // Produits et marques
 // export const getFeaturedProducts = async () => {
 //   try {
-//     const response = await api.get("/products/featured");
-//     return response.data;
+//     const response = await api.get<{ data: Product[] }>("/products/featured");
+//     const products = response.data.data;
+//     return Promise.all(products.map(mapProductToClientProduct));
 //   } catch (error) {
 //     console.error("Échec de /products/featured");
 //     throw error;
 //   }
 // };
 
-// export const getBrands = async () => {
-//   try {
-//     const response = await api.get("/brand");
-//     return response.data;
-//   } catch (error) {
-//     console.error("Échec de /brand");
-//     throw error;
+// export const getProduct = async (id: number) => {
+//   const response = await api.get<Product>(`/products/${id}`);
+//   return response.data;
+// };
+
+// export const createProduct = async (data: {
+//   name: string;
+//   description: string;
+//   price: number;
+//   stock: number;
+//   category_id: number;
+//   image?: string;
+//   featured?: boolean;
+//   coming_soon?: boolean;
+// }) => {
+//   const response = await api.post<Product>("/products", data);
+//   return response.data;
+// };
+
+// export const updateProduct = async (
+//   id: number,
+//   data: {
+//     name?: string;
+//     description?: string;
+//     price?: number;
+//     stock?: number;
+//     category_id?: number;
+//     image?: string;
+//     featured?: boolean;
+//     coming_soon?: boolean;
 //   }
+// ) => {
+//   const response = await api.put<Product>(`/products/${id}`, data);
+//   return response.data;
+// };
+
+// export const deleteProduct = async (id: number) => {
+//   const response = await api.delete(`/products/${id}`);
+//   return response.data;
+// };
+
+// // Catégories
+// export const getCategories = async () => {
+//   const response = await api.get<Category[]>("/categories");
+//   return response.data;
+// };
+
+// export const getCategory = async (id: number) => {
+//   const response = await api.get<Category>(`/categories/${id}`);
+//   return response.data;
+// };
+
+// export const getCategoryProducts = async (
+//   id: number,
+//   params: {
+//     search?: string;
+//     sort_by?: string;
+//     sort_direction?: string;
+//     per_page?: number;
+//     page?: number;
+//   } = {}
+// ) => {
+//   const response = await api.get<{ data: Product[]; [key: string]: unknown }>(`/categories/${id}/products`, { params });
+//   return response.data;
+// };
+
+// export const createCategory = async (data: {
+//   name: string;
+//   description: string;
+// }) => {
+//   const response = await api.post<Category>("/categories", data);
+//   return response.data;
+// };
+
+// export const updateCategory = async (
+//   id: number,
+//   data: {
+//     name?: string;
+//     description?: string;
+//   }
+// ) => {
+//   const response = await api.put<Category>(`/categories/${id}`, data);
+//   return response.data;
+// };
+
+// export const deleteCategory = async (id: number) => {
+//   const response = await api.delete(`/categories/${id}`);
+//   return response.data;
 // };
 
 // // Commandes
@@ -123,8 +300,11 @@
 //   return response.data;
 // };
 
-// export const getOrderDetails = async (orderId: string, params: { user_id: number; guest_id?: undefined; email?: undefined; } | { guest_id: string; email: string; user_id?: undefined; }) => {
-//   const response = await api.get(`/orders/${orderId}`);
+// export const getOrderDetails = async (
+//   orderId: string,
+//   params: { user_id?: number; guest_id?: string; email?: string } = {}
+// ) => {
+//   const response = await api.get(`/orders/${orderId}`, { params });
 //   return response.data;
 // };
 
@@ -166,22 +346,6 @@
 //   return response.data;
 // };
 
-// interface Product {
-//   id: number;
-//   name: string;
-//   price: number;
-//   image: string;
-//   brand: string;
-//   release_date: string;
-//   is_new: boolean;
-//   is_upcoming: boolean;
-// }
-
-// export const getProducts = async (params: { is_new?: boolean; is_upcoming?: boolean } = {}) => {
-//   const response = await api.get<{ data: Product[] }>("/products", { params });
-//   return response.data;
-// };
-
 // export default api;
 
 
@@ -208,6 +372,75 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Interface pour les produits de l'API (utilisée par products/page.tsx et products/[id]/page.tsx)
+export interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  category_id: number;
+  image: string;
+  featured: boolean;
+  coming_soon: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Interface pour les catégories
+export interface Category {
+  id: number;
+  name: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Interface pour les produits côté client (utilisée par new-releases/page.tsx)
+export interface ClientProduct {
+  id: number;
+  name: string;
+  price: number;
+  image: string;
+  brand: string;
+  release_date: string;
+  is_new: boolean;
+  is_upcoming: boolean;
+}
+
+// Interface pour les marques (utilisée par brands/page.tsx)
+export interface Brand {
+  id: string;
+  name: string;
+  image: string;
+  product_count: number;
+  description: string;
+}
+
+// Fonction pour mapper Product vers ClientProduct
+const mapProductToClientProduct = async (product: Product): Promise<ClientProduct> => {
+  // Récupérer les catégories pour mapper category_id à un nom
+  const categories = await getCategories();
+  const category = categories.find((c: Category) => c.id === product.category_id);
+
+  // Déterminer si le produit est "nouveau" (créé dans les 30 derniers jours)
+  const createdDate = new Date(product.created_at);
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const isNew = createdDate >= thirtyDaysAgo;
+
+  return {
+    id: product.id,
+    name: product.name,
+    price: product.price,
+    image: product.image || "/placeholder.svg",
+    brand: category ? category.name : "Inconnue",
+    release_date: product.created_at,
+    is_new: isNew,
+    is_upcoming: product.coming_soon,
+  };
+};
 
 // Authentification
 export const login = async (email: string, password: string) => {
@@ -273,36 +506,162 @@ export const resetPassword = async (
   return response.data;
 };
 
-// Catégories
-export const getCategories = async () => {
-  const response = await api.get("/categories");
+// Produits
+export const getProducts = async (params: {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  sort_by?: string;
+  sort_direction?: string;
+} = {}) => {
+  interface ProductsResponse {
+    data: Product[];
+    page?: number;
+    per_page?: number;
+    total?: number;
+    next_page_url?: string;
+    [key: string]: unknown;
+  }
+  const response = await api.get<ProductsResponse>("/products", { params });
   return response.data;
 };
 
-export const getCategoryProducts = async (categoryId: string) => {
-  const response = await api.get(`/categories/${categoryId}/products`);
-  return response.data;
+export const getClientProducts = async (params: {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  sort_by?: string;
+  sort_direction?: string;
+  is_new?: boolean;
+  is_upcoming?: boolean;
+} = {}) => {
+  const response = await getProducts(params);
+  const products = response.data;
+
+  // Mapper vers ClientProduct
+  const clientProducts = await Promise.all(products.map(mapProductToClientProduct));
+
+  // Filtrer côté client si is_new ou is_upcoming sont spécifiés
+  let filteredProducts = clientProducts;
+  if (params.is_new) {
+    filteredProducts = filteredProducts.filter((p) => p.is_new);
+  }
+  if (params.is_upcoming) {
+    filteredProducts = filteredProducts.filter((p) => p.is_upcoming);
+  }
+
+  return { ...response, data: filteredProducts };
 };
 
-// Produits et marques
 export const getFeaturedProducts = async () => {
   try {
-    const response = await api.get("/products/featured");
-    return response.data;
+    const response = await api.get<{ data: Product[] }>("/products/featured");
+    const products = response.data.data;
+    return Promise.all(products.map(mapProductToClientProduct));
   } catch (error) {
     console.error("Échec de /products/featured");
     throw error;
   }
 };
 
-export const getBrands = async () => {
-  try {
-    const response = await api.get("/brand");
-    return response.data;
-  } catch (error) {
-    console.error("Échec de /brand");
-    throw error;
+export const getProduct = async (id: number) => {
+  const response = await api.get<Product>(`/products/${id}`);
+  return response.data;
+};
+
+export const createProduct = async (data: {
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  category_id: number;
+  image?: string;
+  featured?: boolean;
+  coming_soon?: boolean;
+}) => {
+  const response = await api.post<Product>("/products", data);
+  return response.data;
+};
+
+export const updateProduct = async (
+  id: number,
+  data: {
+    name?: string;
+    description?: string;
+    price?: number;
+    stock?: number;
+    category_id?: number;
+    image?: string;
+    featured?: boolean;
+    coming_soon?: boolean;
   }
+) => {
+  const response = await api.put<Product>(`/products/${id}`, data);
+  return response.data;
+};
+
+export const deleteProduct = async (id: number) => {
+  const response = await api.delete(`/products/${id}`);
+  return response.data;
+};
+
+// Catégories
+export const getCategories = async () => {
+  const response = await api.get<Category[]>("/categories");
+  return response.data;
+};
+
+export const getCategory = async (id: number) => {
+  const response = await api.get<Category>(`/categories/${id}`);
+  return response.data;
+};
+
+export const getCategoryProducts = async (
+  id: number,
+  params: {
+    search?: string;
+    sort_by?: string;
+    sort_direction?: string;
+    per_page?: number;
+    page?: number;
+  } = {}
+) => {
+  const response = await api.get<{ data: Product[]; [key: string]: unknown }>(`/categories/${id}/products`, { params });
+  return response.data;
+};
+
+export const createCategory = async (data: {
+  name: string;
+  description: string;
+}) => {
+  const response = await api.post<Category>("/categories", data);
+  return response.data;
+};
+
+export const updateCategory = async (
+  id: number,
+  data: {
+    name?: string;
+    description?: string;
+  }
+) => {
+  const response = await api.put<Category>(`/categories/${id}`, data);
+  return response.data;
+};
+
+export const deleteCategory = async (id: number) => {
+  const response = await api.delete(`/categories/${id}`);
+  return response.data;
+};
+
+// Marques
+export const getBrands = async () => {
+  interface BrandsResponse {
+    data: Brand[];
+    [key: string]: unknown;
+  }
+  const response = await api.get<BrandsResponse>("/brands");
+  return response.data;
 };
 
 // Commandes
@@ -354,24 +713,6 @@ export const getPaymentHistory = async () => {
 
 export const getUserPaymentHistory = async (userId: number) => {
   const response = await api.get(`/payments/user/${userId}`);
-  return response.data;
-};
-
-
-
-interface Product {
-  id: number;
-  name: string;
-  price: number;
-  image: string;
-  brand: string;
-  release_date: string;
-  is_new: boolean;
-  is_upcoming: boolean;
-}
-
-export const getProducts = async (params: { is_new?: boolean; is_upcoming?: boolean } = {}) => {
-  const response = await api.get<{ data: Product[] }>("/products", { params });
   return response.data;
 };
 

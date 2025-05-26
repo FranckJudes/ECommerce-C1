@@ -3,7 +3,7 @@
 
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import {  useParams } from "next/navigation"; //useRouter,
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "../../../../lib/auth-context";
 import { getOrderDetails, cancelOrder } from "../../../../lib/api";
+import { AxiosError } from "axios";
 
 interface OrderItem {
   id: number;
@@ -59,7 +60,6 @@ export default function OrderDetailsPage() {
   const { user } = useAuth();
   const params = useParams();
   const orderId = params.id as string;
-  const router = useRouter();
 
   // Récupérer ou définir guest_id depuis localStorage
   useEffect(() => {

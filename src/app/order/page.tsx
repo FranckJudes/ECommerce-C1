@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -53,17 +53,13 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
-  const [guestId, setGuestId] = useState<string>("");
   const { user } = useAuth();
-  const router = useRouter();
 
+  
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const id = localStorage.getItem("guest_id") || "";
-      setGuestId(id);
-    }
+    // This effect previously set guestId, which is now removed as unused.
+    // If you need to use guestId in the future, you can restore this logic.
   }, []);
-
   const fetchOrders = async () => {
     setLoading(true);
     setError(null);
@@ -194,7 +190,7 @@ export default function OrdersPage() {
                       {order.items.map((item) => (
                         <div key={item.id} className="flex gap-4">
                           <div className="w-16 h-16 bg-muted rounded-md flex-shrink-0">
-                            <img
+                            <Image
                               src={item.product.image || "/placeholder.svg"}
                               alt={item.product.name}
                               className="rounded-md object-cover w-full h-full"

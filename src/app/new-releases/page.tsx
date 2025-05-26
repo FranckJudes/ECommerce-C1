@@ -9,22 +9,11 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { getProducts } from "../../../lib/api";
-
-interface Product {
-  id: number;
-  name: string;
-  price: number;
-  image: string;
-  brand: string;
-  release_date: string; // Format ISO, ex: "2023-10-15"
-  is_new: boolean;
-  is_upcoming: boolean;
-}
+import { getClientProducts, ClientProduct } from "../../../lib/api";
 
 export default function NewReleasesPage() {
-  const [newReleases, setNewReleases] = useState<Product[]>([]);
-  const [upcomingReleases, setUpcomingReleases] = useState<Product[]>([]);
+  const [newReleases, setNewReleases] = useState<ClientProduct[]>([]);
+  const [upcomingReleases, setUpcomingReleases] = useState<ClientProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,11 +22,11 @@ export default function NewReleasesPage() {
       try {
         setLoading(true);
         // Récupérer les nouvelles sorties
-        const newProducts = await getProducts({ is_new: true });
+        const newProducts = await getClientProducts({ is_new: true });
         setNewReleases(newProducts.data || []);
 
         // Récupérer les sorties à venir
-        const upcomingProducts = await getProducts({ is_upcoming: true });
+        const upcomingProducts = await getClientProducts({ is_upcoming: true });
         setUpcomingReleases(upcomingProducts.data || []);
 
         setLoading(false);
@@ -95,7 +84,7 @@ export default function NewReleasesPage() {
                           fill
                           className="object-cover transition-transform group-hover:scale-105"
                         />
-                        <Badge className="absolute top-2 right-2">Nouveau</Badge>
+                        <Badge className="absolute top-2 owo541-right-2">Nouveau</Badge>
                       </div>
                     </CardContent>
                     <CardFooter className="flex flex-col items-start p-4">
@@ -136,7 +125,7 @@ export default function NewReleasesPage() {
                           className="object-cover transition-transform group-hover:scale-105"
                         />
                         <Badge variant="secondary" className="absolute top-2 right-2">
-                          À Venir
+                          À venir
                         </Badge>
                       </div>
                     </CardContent>

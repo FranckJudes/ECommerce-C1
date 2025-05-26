@@ -1,67 +1,87 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Image from "next/image"
-import Link from "next/link"
-import { useParams } from "next/navigation"
-import { ChevronRight, Heart, Share2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
-import { useCart } from "@/hooks/use-cart"
-import { toast } from "@/hooks/use-toast"
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { ChevronRight, Heart, Share2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useCart } from "@/hooks/use-cart";
+import { toast } from "@/hooks/use-toast";
+import { useAuth } from "../../../../lib/auth-context";
+import api, { getProduct, getCategoryProducts } from "../../../../lib/api";
+import { AxiosError } from "axios";
+
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  category_id: number;
+  image: string;
+  featured: boolean;
+  coming_soon: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 export default function ProductPage() {
-  // Utiliser useParams au lieu de props.params
-  const params = useParams()
-  const productId = params.id as string
+  const params = useParams();
+  const router = useRouter();
+  const productId = parseInt(params.id as string);
+  const { addItem } = useCart();
+  const { user } = useAuth();
 
-  const [selectedSize, setSelectedSize] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const { addItem } = useCart()
+  const [product, setProduct] = useState<Product | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
 
-  // Dans une application réelle, ces données seraient récupérées depuis une API
-  const product = {
-    id: productId,
-    name: "Nike Air Jordan 1 Retro High OG 'Chicago'",
-    price: 170,
-    brand: "Nike",
-    description:
-      "La Air Jordan 1 Retro High OG 'Chicago' 2022 ramène le coloris original qui a fait ses débuts en 1985. Construite fidèlement à la spécification originale, la sneaker présente une tige en cuir avec le coloris Chicago Bulls emblématique.",
-    images: [
-      "/placeholder.svg?height=600&width=600",
-      "/placeholder.svg?height=600&width=600",
-      "/placeholder.svg?height=600&width=600",
-      "/placeholder.svg?height=600&width=600",
-    ],
-    sizes: ["US 7", "US 7.5", "US 8", "US 8.5", "US 9", "US 9.5", "US 10", "US 10.5", "US 11", "US 11.5", "US 12"],
-    colors: ["Chicago", "Bred", "Royal"],
-    relatedProducts: [
-      {
-        id: "2",
-        name: "Nike Air Jordan 4 Retro",
-        price: 200,
-        image: "/placeholder.svg?height=300&width=300",
-        brand: "Nike",
-      },
-      {
-        id: "3",
-        name: "Nike Dunk Low",
-        price: 110,
-        image: "/placeholder.svg?height=300&width=300",
-        brand: "Nike",
-      },
-      {
-        id: "4",
-        name: "Nike Air Force 1 '07",
-        price: 100,
-        image: "/placeholder.svg?height=300&width=300",
-        brand: "Nike",
-      },
-    ],
-  }
+  // Tailles simulées (l'API ne fournit pas ce champ)
+  const sizes = ["US 7", "US 7.5", "US 8", "US 8.5", "US 9", "US 9.5", "US 10", "US 10.5", "US 11", "US 11.5", "US 12"];
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const productData = await getProduct(productId);
+        setProduct(productData);
+
+        // Charger les produits similaires (même catégorie)
+        const relatedData = await getCategoryProducts(productData.category_id, { per_page: 4 });
+        setRelatedProducts(relatedData.data.filter((p) => p.id !== productId));
+
+        // Vérifier si le produit est dans les favoris (si connecté)
+        if (user) {
+          // À implémenter : vérifier via GET /SavedItems
+          // Pour l'instant, supposons qu'il n'est pas favori
+          setIsFavorite(false);
+        }
+
+        setIsLoading(false);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof AxiosError && error.response?.data?.message
+          ? error.response.data.message
+          : "Impossible de charger le produit";
+        setError(errorMessage);
+        toast({
+          title: "Erreur",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [productId, user]);
 
   const handleAddToCart = () => {
     if (!selectedSize) {
@@ -69,30 +89,97 @@ export default function ProductPage() {
         title: "Veuillez sélectionner une taille",
         description: "Vous devez sélectionner une taille avant d'ajouter au panier.",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    setIsLoading(true)
+    if (!product) return;
 
-    // Simuler un délai d'ajout au panier
-    setTimeout(() => {
-      addItem({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        image: product.images[0],
-        size: selectedSize,
-        quantity: 1,
-      })
+    setIsLoading(true);
+    addItem({
+      id: product.id.toString(),
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      size: selectedSize,
+      quantity: 1,
+    });
 
+    toast({
+      title: "Produit ajouté au panier",
+      description: `${product.name} (Taille: ${selectedSize}) a été ajouté à votre panier.`,
+    });
+    setIsLoading(false);
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!user) {
       toast({
-        title: "Produit ajouté au panier",
-        description: `${product.name} (Taille: ${selectedSize}) a été ajouté à votre panier.`,
-      })
+        title: "Connexion requise",
+        description: "Veuillez vous connecter pour ajouter aux favoris.",
+        variant: "destructive",
+      });
+      router.push("/login");
+      return;
+    }
 
-      setIsLoading(false)
-    }, 500)
+    try {
+      if (isFavorite) {
+        // Supprimer des favoris
+        await api.delete(`/SavedItems/${productId}`);
+        setIsFavorite(false);
+        toast({
+          title: "Retiré des favoris",
+          description: `${product?.name} a été retiré de vos favoris.`,
+        });
+      } else {
+        // Ajouter aux favoris
+        await api.post("/SavedItems", { product_id: productId });
+        setIsFavorite(true);
+        toast({
+          title: "Ajouté aux favoris",
+          description: `${product?.name} a été ajouté à vos favoris.`,
+        });
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof AxiosError && error.response?.data?.message
+        ? error.response.data.message
+        : "Erreur lors de la gestion des favoris";
+      toast({
+        title: "Erreur",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="container px-4 py-8">
+        <Skeleton className="h-6 w-1/2 mb-6" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+          <div className="space-y-4">
+            <Skeleton className="aspect-square w-full" />
+            <div className="grid grid-cols-4 gap-2">
+              {Array(4).fill(0).map((_, i) => (
+                <Skeleton key={i} className="aspect-square w-full" />
+              ))}
+            </div>
+          </div>
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-1/4" />
+            <Skeleton className="h-10 w-3/4" />
+            <Skeleton className="h-8 w-1/4" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return <div className="container px-4 py-8">Erreur : {error || "Produit non trouvé"}</div>;
   }
 
   return (
@@ -106,20 +193,22 @@ export default function ProductPage() {
           Produits
         </Link>
         <ChevronRight className="h-4 w-4" />
-        <Link href={`/brands/${product.brand.toLowerCase()}`} className="hover:text-foreground">
-          {product.brand}
-        </Link>
-        <ChevronRight className="h-4 w-4" />
         <span className="truncate">{product.name}</span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
         <div className="space-y-4">
           <div className="aspect-square relative overflow-hidden rounded-lg bg-muted">
-            <Image src={product.images[0] || "/placeholder.svg"} alt={product.name} fill className="object-cover" />
+            <Image
+              src={product.image || "/placeholder.svg"}
+              alt={product.name}
+              fill
+              className="object-cover"
+            />
           </div>
+          {/* Simuler plusieurs images si nécessaire */}
           <div className="grid grid-cols-4 gap-2">
-            {product.images.map((image, index) => (
+            {[product.image, product.image, product.image, product.image].map((image, index) => (
               <div key={index} className="aspect-square relative overflow-hidden rounded-md bg-muted cursor-pointer">
                 <Image
                   src={image || "/placeholder.svg"}
@@ -134,7 +223,6 @@ export default function ProductPage() {
 
         <div>
           <div className="mb-6">
-            <p className="text-lg text-muted-foreground">{product.brand}</p>
             <h1 className="text-3xl font-bold">{product.name}</h1>
             <p className="text-2xl font-bold mt-2">{product.price} €</p>
           </div>
@@ -143,7 +231,7 @@ export default function ProductPage() {
             <div>
               <h3 className="font-medium mb-2">Taille</h3>
               <RadioGroup value={selectedSize || ""} onValueChange={setSelectedSize} className="grid grid-cols-4 gap-2">
-                {product.sizes.map((size) => (
+                {sizes.map((size) => (
                   <div key={size}>
                     <RadioGroupItem value={size} id={`size-${size}`} className="peer sr-only" />
                     <Label
@@ -161,9 +249,14 @@ export default function ProductPage() {
               <Button className="flex-1" size="lg" onClick={handleAddToCart} disabled={isLoading}>
                 {isLoading ? "Ajout en cours..." : "Ajouter au panier"}
               </Button>
-              <Button variant="outline" size="icon" className="h-12 w-12">
-                <Heart className="h-5 w-5" />
-                <span className="sr-only">Ajouter aux favoris</span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-12 w-12"
+                onClick={handleToggleFavorite}
+              >
+                <Heart className={`h-5 w-5 ${isFavorite ? "fill-current text-red-500" : ""}`} />
+                <span className="sr-only">{isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}</span>
               </Button>
               <Button variant="outline" size="icon" className="h-12 w-12">
                 <Share2 className="h-5 w-5" />
@@ -194,112 +287,53 @@ export default function ProductPage() {
         </TabsList>
         <TabsContent value="description" className="text-muted-foreground">
           <p>{product.description}</p>
-          <p className="mt-4">
-            La Air Jordan 1 est la première chaussure signature de Michael Jordan, conçue par Peter Moore et sortie en
-            1985. Elle a révolutionné l&apos;industrie des sneakers et reste l&apos;une des silhouettes les plus
-            emblématiques et recherchées à ce jour.
-          </p>
         </TabsContent>
         <TabsContent value="details">
           <ul className="list-disc pl-5 text-muted-foreground space-y-1">
-            <li>Tige en cuir pleine fleur</li>
-            <li>Coloris: Blanc/Rouge/Noir</li>
-            <li>Semelle intermédiaire en polyuréthane avec unité Air-Sole au talon</li>
-            <li>Semelle extérieure en caoutchouc avec motif à chevrons</li>
-            <li>Logo Swoosh sur les côtés</li>
-            <li>Logo Wings sur le col</li>
-            <li>Perforations sur l&apos;avant-pied pour la respirabilité</li>
-            <li>Fabriqué au Vietnam</li>
+            <li>Matériau : Non spécifié</li>
+            <li>Catégorie ID : {product.category_id}</li>
+            <li>Stock : {product.stock}</li>
           </ul>
         </TabsContent>
         <TabsContent value="reviews">
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="text-center">
-                <p className="text-3xl font-bold">4.8</p>
-                <p className="text-xs text-muted-foreground">sur 5</p>
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-1 text-yellow-500">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                    <path
-                      fillRule="evenodd"
-                      d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                    <path
-                      fillRule="evenodd"
-                      d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                    <path
-                      fillRule="evenodd"
-                      d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                    <path
-                      fillRule="evenodd"
-                      d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                    <path
-                      fillRule="evenodd"
-                      d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <p className="text-sm text-muted-foreground">Basé sur 124 avis</p>
-              </div>
-            </div>
-            <Button variant="outline" className="w-full">
-              Voir tous les avis
-            </Button>
-          </div>
+          <p className="text-muted-foreground">Aucun avis disponible pour ce produit.</p>
         </TabsContent>
       </Tabs>
 
-      <div>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">Produits similaires</h2>
-          <Button variant="link" asChild>
-            <Link href="/products">Voir tout</Link>
-          </Button>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {product.relatedProducts.map((relatedProduct) => (
-            <Link key={relatedProduct.id} href={`/products/${relatedProduct.id}`} className="group">
-              <Card className="overflow-hidden border-none shadow-sm transition-all hover:shadow-md">
-                <div className="p-0">
-                  <div className="relative aspect-square overflow-hidden bg-muted">
-                    <Image
-                      src={relatedProduct.image || "/placeholder.svg"}
-                      alt={relatedProduct.name}
-                      fill
-                      className="object-cover transition-transform group-hover:scale-105"
-                    />
+      {relatedProducts.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">Produits similaires</h2>
+            <Button variant="link" asChild>
+              <Link href="/products">Voir tout</Link>
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {relatedProducts.map((relatedProduct) => (
+              <Link key={relatedProduct.id} href={`/products/${relatedProduct.id}`} className="group">
+                <Card className="overflow-hidden border-none shadow-sm transition-all hover:shadow-md">
+                  <div className="p-0">
+                    <div className="relative aspect-square overflow-hidden bg-muted">
+                      <Image
+                        src={relatedProduct.image || "/placeholder.svg"}
+                        alt={relatedProduct.name}
+                        fill
+                        className="object-cover transition-transform group-hover:scale-105"
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="flex flex-col items-start p-4">
-                  <p className="text-sm text-muted-foreground">{relatedProduct.brand}</p>
-                  <h3 className="font-medium line-clamp-1 group-hover:text-primary transition-colors">
-                    {relatedProduct.name}
-                  </h3>
-                  <p className="font-bold mt-1">{relatedProduct.price} €</p>
-                </div>
-              </Card>
-            </Link>
-          ))}
+                  <div className="flex flex-col items-start p-4">
+                    <h3 className="font-medium line-clamp-1 group-hover:text-primary transition-colors">
+                      {relatedProduct.name}
+                    </h3>
+                    <p className="font-bold mt-1">{relatedProduct.price} €</p>
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
-  )
+  );
 }

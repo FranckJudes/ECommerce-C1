@@ -1,147 +1,120 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
-import ProductCard from "@/components/product-card"
-import { Filter, SlidersHorizontal } from "lucide-react"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import ProductCard from "@/components/product-card";
+import { Filter, SlidersHorizontal } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { toast } from "@/hooks/use-toast";
+import { getProducts, getCategories } from "../../../lib/api";
+import { AxiosError } from "axios";
+
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  category_id: number;
+  image: string;
+  featured: boolean;
+  coming_soon: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export default function ProductsPage() {
-  const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [priceRange, setPriceRange] = useState([0, 300])
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([])
-  const [selectedSizes, setSelectedSizes] = useState<string[]>([])
-  const [sortOption, setSortOption] = useState("newest")
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [priceRange, setPriceRange] = useState([0, 1000]);
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortOption, setSortOption] = useState("newest");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
-  // Dans une application réelle, ces données seraient récupérées depuis une API
-  const products = [
-    {
-      id: "1",
-      name: "Nike Air Jordan 1 Retro High OG",
-      price: 170,
-      image: "/placeholder.svg?height=300&width=300",
-      brand: "Nike",
-      isNew: true,
-    },
-    {
-      id: "2",
-      name: "Adidas Yeezy Boost 350 V2",
-      price: 220,
-      image: "/placeholder.svg?height=300&width=300",
-      brand: "Adidas",
-    },
-    {
-      id: "3",
-      name: "New Balance 990v5",
-      price: 185,
-      image: "/placeholder.svg?height=300&width=300",
-      brand: "New Balance",
-    },
-    {
-      id: "4",
-      name: "Nike Dunk Low",
-      price: 110,
-      image: "/placeholder.svg?height=300&width=300",
-      brand: "Nike",
-      isSale: true,
-      salePrice: 85,
-    },
-    {
-      id: "5",
-      name: "Air Jordan 4 Retro",
-      price: 200,
-      image: "/placeholder.svg?height=300&width=300",
-      brand: "Jordan",
-    },
-    {
-      id: "6",
-      name: "Adidas Ultra Boost 22",
-      price: 190,
-      image: "/placeholder.svg?height=300&width=300",
-      brand: "Adidas",
-      isSale: true,
-      salePrice: 142,
-    },
-    {
-      id: "7",
-      name: "Nike Air Force 1 '07",
-      price: 110,
-      image: "/placeholder.svg?height=300&width=300",
-      brand: "Nike",
-    },
-    {
-      id: "8",
-      name: "Puma Suede Classic",
-      price: 70,
-      image: "/placeholder.svg?height=300&width=300",
-      brand: "Puma",
-      isSale: true,
-      salePrice: 49,
-    },
-  ]
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [productsData, categoriesData] = await Promise.all([
+          getProducts({
+            page,
+            per_page: 12,
+            search: searchQuery,
+            sort_by: sortOption === "newest" ? "created_at" : "price",
+            sort_direction: sortOption === "price-low" ? "asc" : sortOption === "price-high" ? "desc" : "desc",
+          }),
+          getCategories(),
+        ]);
+        setProducts(productsData.data);
+        setCategories(categoriesData);
+        setHasMore(!!productsData.next_page_url);
+        setLoading(false);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof AxiosError && error.response?.data?.message
+          ? error.response.data.message
+          : "Impossible de charger les produits";
+        setError(errorMessage);
+        toast({
+          title: "Erreur",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [page, searchQuery, sortOption]);
 
-  const brands = ["Nike", "Adidas", "New Balance", "Jordan", "Puma", "Reebok", "Converse", "Vans"]
-  const sizes = ["US 7", "US 7.5", "US 8", "US 8.5", "US 9", "US 9.5", "US 10", "US 10.5", "US 11", "US 11.5", "US 12"]
-
-  // Filtrer les produits en fonction des critères sélectionnés
   const filteredProducts = products.filter((product) => {
-    // Filtre de prix
-    const productPrice = product.isSale && product.salePrice ? product.salePrice : product.price
-    if (productPrice < priceRange[0] || productPrice > priceRange[1]) {
-      return false
+    if (product.price < priceRange[0] || product.price > priceRange[1]) {
+      return false;
     }
-
-    // Filtre de marque
-    if (selectedBrands.length > 0 && !selectedBrands.includes(product.brand)) {
-      return false
+    if (selectedCategories.length > 0 && !selectedCategories.includes(product.category_id)) {
+      return false;
     }
+    return true;
+  });
 
-    return true
-  })
-
-  // Trier les produits
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    const priceA = a.isSale && a.salePrice ? a.salePrice : a.price
-    const priceB = b.isSale && b.salePrice ? b.salePrice : b.price
-
-    switch (sortOption) {
-      case "price-low":
-        return priceA - priceB
-      case "price-high":
-        return priceB - priceA
-      case "newest":
-      default:
-        return 0 // Dans une application réelle, on utiliserait la date d'ajout
-    }
-  })
-
-  const handleBrandChange = (brand: string, checked: boolean) => {
+  const handleCategoryChange = (categoryId: number, checked: boolean) => {
     if (checked) {
-      setSelectedBrands([...selectedBrands, brand])
+      setSelectedCategories([...selectedCategories, categoryId]);
     } else {
-      setSelectedBrands(selectedBrands.filter((b) => b !== brand))
+      setSelectedCategories(selectedCategories.filter((id) => id !== categoryId));
     }
-  }
-
-  const handleSizeChange = (size: string, checked: boolean) => {
-    if (checked) {
-      setSelectedSizes([...selectedSizes, size])
-    } else {
-      setSelectedSizes(selectedSizes.filter((s) => s !== size))
-    }
-  }
+  };
 
   const resetFilters = () => {
-    setPriceRange([0, 300])
-    setSelectedBrands([])
-    setSelectedSizes([])
-  }
+    setPriceRange([0, 1000]);
+    setSelectedCategories([]);
+    setSearchQuery("");
+    setSortOption("newest");
+  };
+
+  const loadMore = () => {
+    if (hasMore) {
+      setPage((prev) => prev + 1);
+    }
+  };
 
   const FilterContent = () => (
     <div className="space-y-6">
@@ -149,11 +122,10 @@ export default function ProductsPage() {
         <h3 className="text-lg font-medium mb-4">Prix</h3>
         <div className="space-y-4">
           <Slider
-            defaultValue={priceRange}
-            min={0}
-            max={300}
-            step={10}
             value={priceRange}
+            min={0}
+            max={1000}
+            step={10}
             onValueChange={setPriceRange}
           />
           <div className="flex items-center justify-between">
@@ -166,34 +138,16 @@ export default function ProductsPage() {
       <Separator />
 
       <div>
-        <h3 className="text-lg font-medium mb-4">Marques</h3>
+        <h3 className="text-lg font-medium mb-4">Catégories</h3>
         <div className="space-y-2">
-          {brands.map((brand) => (
-            <div key={brand} className="flex items-center space-x-2">
+          {categories.map((category) => (
+            <div key={category.id} className="flex items-center space-x-2">
               <Checkbox
-                id={`brand-${brand}`}
-                checked={selectedBrands.includes(brand)}
-                onCheckedChange={(checked) => handleBrandChange(brand, checked === true)}
+                id={`category-${category.id}`}
+                checked={selectedCategories.includes(category.id)}
+                onCheckedChange={(checked) => handleCategoryChange(category.id, checked === true)}
               />
-              <Label htmlFor={`brand-${brand}`}>{brand}</Label>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <Separator />
-
-      <div>
-        <h3 className="text-lg font-medium mb-4">Tailles</h3>
-        <div className="grid grid-cols-3 gap-2">
-          {sizes.map((size) => (
-            <div key={size} className="flex items-center space-x-2">
-              <Checkbox
-                id={`size-${size}`}
-                checked={selectedSizes.includes(size)}
-                onCheckedChange={(checked) => handleSizeChange(size, checked === true)}
-              />
-              <Label htmlFor={`size-${size}`}>{size}</Label>
+              <Label htmlFor={`category-${category.id}`}>{category.name}</Label>
             </div>
           ))}
         </div>
@@ -205,7 +159,34 @@ export default function ProductsPage() {
         Réinitialiser les filtres
       </Button>
     </div>
-  )
+  );
+
+  if (loading && page === 1) {
+    return (
+      <div className="container px-4 py-8">
+        <div className="flex justify-between mb-8">
+          <Skeleton className="h-8 w-1/4" />
+          <Skeleton className="h-10 w-1/4" />
+        </div>
+        <div className="flex gap-8">
+          <div className="hidden md:block w-1/4">
+            <Skeleton className="h-48 w-full" />
+          </div>
+          <div className="w-full md:w-3/4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {Array(8).fill(0).map((_, i) => (
+                <Skeleton key={i} className="h-64 w-full" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div className="container px-4 py-8">Erreur : {error}</div>;
+  }
 
   return (
     <div className="container px-4 py-8">
@@ -218,7 +199,12 @@ export default function ProductsPage() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-          <Input placeholder="Rechercher" className="w-full sm:w-[200px]" />
+          <Input
+            placeholder="Rechercher"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full sm:w-[200px]"
+          />
           <Select value={sortOption} onValueChange={setSortOption}>
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Trier par" />
@@ -261,17 +247,17 @@ export default function ProductsPage() {
 
         <div className="w-full md:w-3/4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {sortedProducts.map((product) => (
+            {filteredProducts.map((product) => (
               <ProductCard
                 key={product.id}
-                id={product.id}
+                id={product.id.toString()}
                 name={product.name}
                 price={product.price}
                 image={product.image}
-                brand={product.brand}
-                isNew={product.isNew}
-                isSale={product.isSale}
-                salePrice={product.salePrice}
+                brand={categories.find((c) => c.id === product.category_id)?.name || "Inconnue"}
+                isNew={product.featured}
+                isSale={false} // À ajuster si l'API fournit un champ pour les soldes
+                salePrice={undefined}
               />
             ))}
           </div>
@@ -286,13 +272,15 @@ export default function ProductsPage() {
             </div>
           )}
 
-          {filteredProducts.length > 0 && (
+          {filteredProducts.length > 0 && hasMore && (
             <div className="flex justify-center mt-12">
-              <Button variant="outline">Charger plus</Button>
+              <Button variant="outline" onClick={loadMore} disabled={loading}>
+                {loading ? "Chargement..." : "Charger plus"}
+              </Button>
             </div>
           )}
         </div>
       </div>
     </div>
-  )
+  );
 }

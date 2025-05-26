@@ -1,4 +1,3 @@
-// lib/auth-context.tsx
 "use client";
 import { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -16,6 +15,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  setUser: (user: User | null) => void;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string, password_confirmation: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -122,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, login, register, logout, forgotPassword, resetPassword, isLoading }}
+      value={{ user, setUser, login, register, logout, forgotPassword, resetPassword, isLoading }}
     >
       {children}
     </AuthContext.Provider>

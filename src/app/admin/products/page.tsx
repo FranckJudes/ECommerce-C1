@@ -1,416 +1,426 @@
-// // app/admin/products/page.tsx
-// "use client";
+"use client";
 
-// import Link from "next/link";
-// import { useState, useEffect } from "react";
-// import { useRouter } from "next/navigation";
-// import {
-//   Table,
-//   TableBody,
-//   TableCell,
-//   TableHead,
-//   TableHeader,
-//   TableRow,
-// } from "@/components/ui/table";
-// import { Button } from "@/components/ui/button";
-// import {
-//   Dialog,
-//   DialogContent,
-//   DialogHeader,
-//   DialogTitle,
-//   DialogTrigger,
-// } from "@/components/ui/dialog";
-// import { Input } from "@/components/ui/input";
-// import { Textarea } from "@/components/ui/textarea";
-// import { Checkbox } from "@/components/ui/checkbox";
-// import { toast } from "@/hooks/use-toast";
-// import {
-//   getProducts,
-//   createProduct,
-//   deleteProduct,
-//   getCategories,
-// } from "../../../../lib/api";
-// import { AxiosError } from "axios";
-// import { z } from "zod";
-// import { useForm } from "react-hook-form";
-// import { zodResolver } from "@hookform/resolvers/zod";
-// import {
-//   Form,
-//   FormControl,
-//   FormField,
-//   FormItem,
-//   FormLabel,
-//   FormMessage,
-// } from "@/components/ui/form";
-// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-// import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "@/hooks/use-toast";
+import {
+  getProducts,
+  createProduct,
+  deleteProduct,
+  getCategories,
+  getBrands,
+} from "../../../../lib/api";
+import { AxiosError } from "axios";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  FormProvider,
+} from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// interface Product {
-//   id: number;
-//   name: string;
-//   description: string;
-//   price: number;
-//   stock: number;
-//   category_id: number;
-//   image: string;
-//   featured: boolean;
-//   coming_soon: boolean;
-//   created_at: string;
-//   updated_at: string;
-// }
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  category_id: number;
+  brand_id?: number;
+  image: string;
+  featured: boolean;
+  coming_soon: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
-// interface Category {
-//   id: number;
-//   name: string;
-//   description: string;
-//   created_at: string;
-//   updated_at: string;
-// }
+interface Category {
+  id: number;
+  name: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+}
 
-// const productSchema = z.object({
-//   name: z.string().min(1, "Le nom est requis"),
-//   description: z.string().min(1, "La description est requise"),
-//   price: z.number().min(0, "Le prix doit être positif"),
-//   stock: z.number().int().min(0, "Le stock doit être un entier positif"),
-//   category_id: z.number().int().min(1, "La catégorie est requise"),
-//   image: z.string().optional(),
-//   featured: z.boolean().optional(),
-//   coming_soon: z.boolean().optional(),
-// });
+interface Brand {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  logo: string;
+  is_featured: boolean;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
 
-// type ProductFormData = z.infer<typeof productSchema>;
+const productSchema = z.object({
+  name: z.string().min(1, "Le nom est requis"),
+  description: z.string().min(1, "La description est requise"),
+  price: z.coerce.number().min(0, "Le prix doit être positif"),
+  stock: z.coerce.number().int().min(0, "Le stock doit être un entier positif"),
+  category_id: z.coerce.number().int().min(1, "La catégorie est requise"),
+  brand_id: z.coerce.number().int().optional(),
+  image: z.string().optional(),
+  featured: z.boolean().optional(),
+  coming_soon: z.boolean().optional(),
+});
 
-// export default function AdminProductsPage() {
-//   const [products, setProducts] = useState<Product[]>([]);
-//   const [categories, setCategories] = useState<Category[]>([]);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState<string | null>(null);
-//   const router = useRouter();
-
-//   const form = useForm<ProductFormData>({
-//     resolver: zodResolver(productSchema),
-//     defaultValues: {
-//       name: "",
-//       description: "",
-//       price: 0,
-//       stock: 0,
-//       category_id: 0,
-//       image: "",
-//       featured: false,
-//       coming_soon: false,
-//     },
-//   });
-
-//   useEffect(() => {
-//     const fetchData = async () => {
-//       setLoading(true);
-//       try {
-//         const [productsData, categoriesData] = await Promise.all([
-//           getProducts(),
-//           getCategories(),
-//         ]);
-//         setProducts(productsData.data);
-//         setCategories(categoriesData);
-//         setLoading(false);
-//       } catch (error: unknown) {
-//         const errorMessage = error instanceof AxiosError && error.response?.data?.message
-//           ? error.response.data.message
-//           : "Impossible de charger les données";
-//         setError(errorMessage);
-//         toast({
-//           title: "Erreur",
-//           description: errorMessage,
-//           variant: "destructive",
-//         });
-//         setLoading(false);
-//       }
-//     };
-//     fetchData();
-//   }, []);
-
-//   const handleCreateProduct = async (data: ProductFormData) => {
-//     try {
-//       const newProduct = await createProduct(data);
-//       setProducts([...products, newProduct]);
-//       toast({
-//         title: "Succès",
-//         description: "Produit créé avec succès.",
-//       });
-//       form.reset();
-//     } catch (error: unknown) {
-//       const errorMessage = error instanceof AxiosError && error.response?.data?.message
-//         ? error.response.data.message
-//         : "Échec de la création du produit";
-//       toast({
-//         title: "Erreur",
-//         description: errorMessage,
-//         variant: "destructive",
-//       });
-//     }
-//   };
-
-//   const handleDeleteProduct = async (id: number) => {
-//     if (!confirm("Voulez-vous vraiment supprimer ce produit ?")) return;
-//     try {
-//       await deleteProduct(id);
-//       setProducts(products.filter((p) => p.id !== id));
-//       toast({
-//         title: "Succès",
-//         description: "Produit supprimé avec succès.",
-//       });
-//     } catch (error: unknown) {
-//       const errorMessage = error instanceof AxiosError && error.response?.data?.message
-//         ? error.response.data.message
-//         : "Échec de la suppression du produit";
-//       toast({
-//         title: "Erreur",
-//         description: errorMessage,
-//         variant: "destructive",
-//       });
-//     }
-//   };
-
-//   if (loading) {
-//     return (
-//       <div className="container px-4 py-8">
-//         <Skeleton className="h-8 w-1/4 mb-6" />
-//         <Skeleton className="h-10 w-32 mb-4" />
-//         <Table>
-//           <TableHeader>
-//             <TableRow>
-//               {["Nom", "Prix", "Stock", "Catégorie", "Actions"].map((header) => (
-//                 <TableHead key={header}>
-//                   <Skeleton className="h-6 w-full" />
-//                 </TableHead>
-//               ))}
-//             </TableRow>
-//           </TableHeader>
-//           <TableBody>
-//             {Array(5).fill(0).map((_, index) => (
-//               <TableRow key={index}>
-//                 {Array(5).fill(0).map((_, i) => (
-//                   <TableCell key={i}>
-//                     <Skeleton className="h-6 w-full" />
-//                   </TableCell>
-//                 ))}
-//               </TableRow>
-//             ))}
-//           </TableBody>
-//         </Table>
-//       </div>
-//     );
-//   }
-
-//   if (error) {
-//     return <div className="container px-4 py-8">Erreur : {error}</div>;
-//   }
-
-//   return (
-//     <div className="container px-4 py-8">
-//       <div className="flex justify-between items-center mb-6">
-//         <h1 className="text-3xl font-bold">Gestion des produits</h1>
-//         <Button asChild variant="outline">
-//           <Link href="/admin">Retour au tableau de bord</Link>
-//         </Button>
-//       </div>
-//       <Dialog>
-//         <DialogTrigger asChild>
-//           <Button className="mb-4">Ajouter un produit</Button>
-//         </DialogTrigger>
-//         <DialogContent className="max-h-[80vh] overflow-y-auto">
-//           <DialogHeader>
-//             <DialogTitle>Ajouter un produit</DialogTitle>
-//           </DialogHeader>
-//           <Form {...form}>
-//             <form onSubmit={form.handleSubmit(handleCreateProduct)} className="space-y-4">
-//               <FormField
-//                 control={form.control}
-//                 name="name"
-//                 render={({ field }) => (
-//                   <FormItem>
-//                     <FormLabel>Nom</FormLabel>
-//                     <FormControl>
-//                       <Input placeholder="Nom du produit" {...field} />
-//                     </FormControl>
-//                     <FormMessage />
-//                   </FormItem>
-//                 )}
-//               />
-//               <FormField
-//                 control={form.control}
-//                 name="description"
-//                 render={({ field }) => (
-//                   <FormItem>
-//                     <FormLabel>Description</FormLabel>
-//                     <FormControl>
-//                       <Textarea placeholder="Description du produit" {...field} />
-//                     </FormControl>
-//                     <FormMessage />
-//                   </FormItem>
-//                 )}
-//               />
-//               <FormField
-//                 control={form.control}
-//                 name="price"
-//                 render={({ field }) => (
-//                   <FormItem>
-//                     <FormLabel>Prix</FormLabel>
-//                     <FormControl>
-//                       <Input
-//                         type="number"
-//                         step="0.01"
-//                         placeholder="0.00"
-//                         {...field}
-//                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-//                       />
-//                     </FormControl>
-//                     <FormMessage />
-//                   </FormItem>
-//                 )}
-//               />
-//               <FormField
-//                 control={form.control}
-//                 name="stock"
-//                 render={({ field }) => (
-//                   <FormItem>
-//                     <FormLabel>Stock</FormLabel>
-//                     <FormControl>
-//                       <Input
-//                         type="number"
-//                         placeholder="0"
-//                         {...field}
-//                         onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-//                       />
-//                     </FormControl>
-//                     <FormMessage />
-//                   </FormItem>
-//                 )}
-//               />
-//               <FormField
-//                 control={form.control}
-//                 name="category_id"
-//                 render={({ field }) => (
-//                   <FormItem>
-//                     <FormLabel>Catégorie</FormLabel>
-//                     <Select
-//                       onValueChange={(value) => field.onChange(parseInt(value))}
-//                       value={field.value ? field.value.toString() : ""}
-//                     >
-//                       <FormControl>
-//                         <SelectTrigger>
-//                           <SelectValue placeholder="Sélectionner une catégorie" />
-//                         </SelectTrigger>
-//                       </FormControl>
-//                       <SelectContent>
-//                         {categories.map((category) => (
-//                           <SelectItem key={category.id} value={category.id.toString()}>
-//                             {category.name}
-//                           </SelectItem>
-//                         ))}
-//                       </SelectContent>
-//                     </Select>
-//                     <FormMessage />
-//                   </FormItem>
-//                 )}
-//               />
-//               <FormField
-//                 control={form.control}
-//                 name="image"
-//                 render={({ field }) => (
-//                   <FormItem>
-//                     <FormLabel>URL de l&apos;image</FormLabel>
-//                     <FormControl>
-//                       <Input placeholder="https://exemple.com/image.jpg" {...field} />
-//                     </FormControl>
-//                     <FormMessage />
-//                   </FormItem>
-//                 )}
-//               />
-//               <FormField
-//                 control={form.control}
-//                 name="featured"
-//                 render={({ field }) => (
-//                   <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-//                     <FormControl>
-//                       <Checkbox
-//                         checked={field.value}
-//                         onCheckedChange={field.onChange}
-//                       />
-//                     </FormControl>
-//                     <div className="space-y-1 leading-none">
-//                       <FormLabel>Mis en avant</FormLabel>
-//                     </div>
-//                     <FormMessage />
-//                   </FormItem>
-//                 )}
-//               />
-//               <FormField
-//                 control={form.control}
-//                 name="coming_soon"
-//                 render={({ field }) => (
-//                   <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-//                     <FormControl>
-//                       <Checkbox
-//                         checked={field.value}
-//                         onCheckedChange={field.onChange}
-//                       />
-//                     </FormControl>
-//                     <div className="space-y-1 leading-none">
-//                       <FormLabel>Bientôt disponible</FormLabel>
-//                     </div>
-//                     <FormMessage />
-//                   </FormItem>
-//                 )}
-//               />
-//               <Button type="submit">Créer</Button>
-//             </form>
-//           </Form>
-//         </DialogContent>
-//       </Dialog>
-//       <Table>
-//         <TableHeader>
-//           <TableRow>
-//             <TableHead>Nom</TableHead>
-//             <TableHead>Prix</TableHead>
-//             <TableHead>Stock</TableHead>
-//             <TableHead>Catégorie</TableHead>
-//             <TableHead>Actions</TableHead>
-//           </TableRow>
-//         </TableHeader>
-//         <TableBody>
-//           {products.map((product) => (
-//             <TableRow key={product.id}>
-//               <TableCell>{product.name}</TableCell>
-//               <TableCell>{product.price} €</TableCell>
-//               <TableCell>{product.stock}</TableCell>
-//               <TableCell>
-//                 {categories.find((c) => c.id === product.category_id)?.name || "Inconnue"}
-//               </TableCell>
-//               <TableCell>
-//                 <Button
-//                   variant="outline"
-//                   size="sm"
-//                   className="mr-2"
-//                   onClick={() => router.push(`/admin/products/${product.id}`)}
-//                 >
-//                   Modifier
-//                 </Button>
-//                 <Button
-//                   variant="destructive"
-//                   size="sm"
-//                   onClick={() => handleDeleteProduct(product.id)}
-//                 >
-//                   Supprimer
-//                 </Button>
-//               </TableCell>
-//             </TableRow>
-//           ))}
-//         </TableBody>
-//       </Table>
-//     </div>
-//   );
-// }
+type ProductFormData = z.infer<typeof productSchema>;
 
 export default function AdminProductsPage() {
-  return <div>Page temporaire</div>;
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  
+  const form = useForm<ProductFormData>({
+    resolver: zodResolver(productSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      price: 0,
+      stock: 0,
+      category_id: 0,
+      brand_id: undefined,
+      image: "",
+      featured: false,
+      coming_soon: false,
+    },
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [productsData, categoriesData, brandsData] = await Promise.all([
+          getProducts(),
+          getCategories(),
+          getBrands(),
+        ]);
+        setProducts(productsData.data);
+        setCategories(categoriesData);
+        setBrands(brandsData.data);
+        setLoading(false);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof AxiosError && error.response?.data?.message
+          ? error.response.data.message
+          : "Impossible de charger les données";
+        setError(errorMessage);
+        toast({
+          title: "Erreur",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleCreateProduct = async (data: ProductFormData) => {
+    try {
+      console.log("Données du formulaire:", data);
+      const newProduct = await createProduct(data);
+      setProducts([...products, newProduct]);
+      toast({
+        title: "Succès",
+        description: "Produit créé avec succès.",
+      });
+      form.reset();
+      setIsAddDialogOpen(false);
+    } catch (error: unknown) {
+      console.error("Erreur de création du produit:", error);
+      const errorMessage = error instanceof AxiosError && error.response?.data?.message
+        ? error.response.data.message
+        : "Échec de la création du produit";
+      toast({
+        title: "Erreur",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteProduct = async (id: number) => {
+    if (!confirm("Voulez-vous vraiment supprimer ce produit ?")) return;
+    try {
+      await deleteProduct(id);
+      setProducts(products.filter((p) => p.id !== id));
+      toast({
+        title: "Succès",
+        description: "Produit supprimé avec succès.",
+      });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof AxiosError && error.response?.data?.message
+        ? error.response.data.message
+        : "Échec de la suppression du produit";
+      toast({
+        title: "Erreur",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="container px-4 py-8">
+        <Skeleton className="h-8 w-1/4 mb-6" />
+        <Skeleton className="h-10 w-32 mb-4" />
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {["Nom", "Prix", "Stock", "Catégorie", "Marque", "Actions"].map((header) => (
+                <TableHead key={header}>
+                  <Skeleton className="h-6 w-full" />
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array(5).fill(0).map((_, index) => (
+              <TableRow key={index}>
+                {Array(6).fill(0).map((_, i) => (
+                  <TableCell key={i}>
+                    <Skeleton className="h-6 w-full" />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div className="container px-4 py-8">Erreur : {error}</div>;
+  }
+
+  return (
+    <div className="container px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Gestion des produits</h1>
+        <Button asChild variant="outline">
+          <Link href="/admin">Retour au tableau de bord</Link>
+        </Button>
+      </div>
+      <Button className="mb-4" onClick={() => setIsAddDialogOpen(true)}>Ajouter un produit</Button>
+      
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Ajouter un produit</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={form.handleSubmit(handleCreateProduct)} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nom</Label>
+                <Input 
+                  id="name" 
+                  placeholder="Nom du produit" 
+                  {...form.register("name")} 
+                />
+                {form.formState.errors.name && (
+                  <p className="text-sm text-red-500">{form.formState.errors.name.message as string}</p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea 
+                  id="description" 
+                  placeholder="Description du produit" 
+                  {...form.register("description")} 
+                />
+                {form.formState.errors.description && (
+                  <p className="text-sm text-red-500">{form.formState.errors.description.message as string}</p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="price">Prix</Label>
+                <Input 
+                  id="price" 
+                  type="number" 
+                  step="0.01" 
+                  min="0" 
+                  placeholder="0.00" 
+                  {...form.register("price")} 
+                />
+                {form.formState.errors.price && (
+                  <p className="text-sm text-red-500">{form.formState.errors.price.message as string}</p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="stock">Stock</Label>
+                <Input 
+                  id="stock" 
+                  type="number" 
+                  min="0" 
+                  placeholder="0" 
+                  {...form.register("stock")} 
+                />
+                {form.formState.errors.stock && (
+                  <p className="text-sm text-red-500">{form.formState.errors.stock.message as string}</p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="category_id">Catégorie</Label>
+                <Select 
+                  onValueChange={(value) => form.setValue("category_id", parseInt(value), { shouldValidate: true })} 
+                  value={form.getValues("category_id") ? form.getValues("category_id").toString() : ""}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner une catégorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id.toString()}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {form.formState.errors.category_id && (
+                  <p className="text-sm text-red-500">{form.formState.errors.category_id.message as string}</p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="brand_id">Marque</Label>
+                <Select 
+                  onValueChange={(value) => form.setValue("brand_id", parseInt(value), { shouldValidate: true })} 
+                  value={form.getValues("brand_id") ? form.getValues("brand_id").toString() : ""}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner une marque" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {brands.map((brand) => (
+                      <SelectItem key={brand.id} value={brand.id.toString()}>
+                        {brand.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {form.formState.errors.brand_id && (
+                  <p className="text-sm text-red-500">{form.formState.errors.brand_id.message as string}</p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="image">URL de l&apos;image</Label>
+                <Input 
+                  id="image" 
+                  placeholder="https://exemple.com/image.jpg" 
+                  {...form.register("image")} 
+                />
+                {form.formState.errors.image && (
+                  <p className="text-sm text-red-500">{form.formState.errors.image.message as string}</p>
+                )}
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="featured" 
+                  checked={form.watch("featured")} 
+                  onCheckedChange={(checked) => form.setValue("featured", checked as boolean)} 
+                />
+                <Label htmlFor="featured">Mis en avant</Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="coming_soon" 
+                  checked={form.watch("coming_soon")} 
+                  onCheckedChange={(checked) => form.setValue("coming_soon", checked as boolean)} 
+                />
+                <Label htmlFor="coming_soon">Bientôt disponible</Label>
+              </div>
+              
+              <Button type="submit">Créer</Button>
+            </form>
+        </DialogContent>
+      </Dialog>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nom</TableHead>
+            <TableHead>Prix</TableHead>
+            <TableHead>Stock</TableHead>
+            <TableHead>Catégorie</TableHead>
+            <TableHead>Marque</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {products.map((product) => (
+            <TableRow key={product.id}>
+              <TableCell>{product.name}</TableCell>
+              <TableCell>{product.price} €</TableCell>
+              <TableCell>{product.stock}</TableCell>
+              <TableCell>
+                {categories.find(c => c.id === product.category_id)?.name || "Non catégorisé"}
+              </TableCell>
+              <TableCell>
+                {brands.find(b => b.id === product.brand_id)?.name || "Non spécifiée"}
+              </TableCell>
+              <TableCell>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mr-2"
+                  onClick={() => router.push(`/admin/products/${product.id}`)}
+                >
+                  Modifier
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleDeleteProduct(product.id)}
+                >
+                  Supprimer
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
 }

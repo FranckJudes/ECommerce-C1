@@ -30,6 +30,7 @@ export interface Product {
   price: number;
   stock: number;
   category_id: number;
+  brand_id?: number;
   image: string;
   featured: boolean;
   coming_soon: boolean;
@@ -58,13 +59,56 @@ export interface ClientProduct {
   is_upcoming: boolean;
 }
 
+// Interface pour les articles sauvegardés
+export interface SavedItem {
+  id: number;
+  product_id: number;
+  user_id: number;
+  product: Product;
+  created_at: string;
+  updated_at: string;
+}
+
+// Interface pour les méthodes de paiement
+export interface PaymentMethod {
+  id: number;
+  type: string;
+  card_number?: string;
+  card_holder?: string;
+  expiry_month?: string;
+  expiry_year?: string;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Interface pour les adresses
+export interface Address {
+  id: number;
+  user_id: number;
+  address_line1: string;
+  address_line2?: string;
+  city: string;
+  state?: string;
+  postal_code: string;
+  country: string;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // Interface pour les marques (utilisée par brands/page.tsx)
 export interface Brand {
-  id: string;
+  id: number;
   name: string;
-  image: string;
-  product_count: number;
+  slug: string;
   description: string;
+  logo: string;
+  is_featured: boolean;
+  status: string;
+  product_count?: number;
+  created_at: string;
+  updated_at: string;
 }
 
 // Fonction pour mapper Product vers ClientProduct
@@ -224,6 +268,7 @@ export const createProduct = async (data: {
   price: number;
   stock: number;
   category_id: number;
+  brand_id?: number;
   image?: string;
   featured?: boolean;
   coming_soon?: boolean;
@@ -240,6 +285,7 @@ export const updateProduct = async (
     price?: number;
     stock?: number;
     category_id?: number;
+    brand_id?: number;
     image?: string;
     featured?: boolean;
     coming_soon?: boolean;
@@ -304,18 +350,202 @@ export const deleteCategory = async (id: number) => {
 };
 
 // Marques
-export const getBrands = async () => {
+export const getBrands = async (params: {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  featured?: boolean;
+} = {}) => {
   interface BrandsResponse {
     data: Brand[];
     [key: string]: unknown;
   }
-  const response = await api.get<BrandsResponse>("/brands");
+  const response = await api.get<BrandsResponse>("/brands", { params });
+  return response.data;
+};
+
+export const getFeaturedBrands = async () => {
+  const response = await api.get<{ data: Brand[] }>("/brands/featured");
+  return response.data;
+};
+
+export const getBrand = async (id: number) => {
+  const response = await api.get<Brand>(`/brands/${id}`);
+  return response.data;
+};
+
+export const getBrandProducts = async (
+  id: number,
+  params: {
+    search?: string;
+    sort_by?: string;
+    sort_direction?: string;
+    per_page?: number;
+    page?: number;
+  } = {}
+) => {
+  const response = await api.get<{ data: Product[]; [key: string]: unknown }>(`/brands/${id}/products`, { params });
+  return response.data;
+};
+
+export const createBrand = async (data: {
+  name: string;
+  description?: string;
+  logo?: File;
+  is_featured?: boolean;
+  status?: string;
+}) => {
+  const formData = new FormData();
+  Object.entries(data).forEach(([key, value]) => {
+    if (value !== undefined) {
+      if (key === 'logo' && value instanceof File) {
+        formData.append(key, value);
+      } else if (typeof value === 'boolean') {
+        formData.append(key, value ? 'true' : 'false');
+      } else if (typeof value === 'string') {
+        formData.append(key, value);
+      }
+    }
+  });
+  
+  const response = await api.post<Brand>("/brands", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return response.data;
+};
+
+export const updateBrand = async (
+  id: number,
+  data: {
+    name?: string;
+    description?: string;
+    logo?: File;
+    is_featured?: boolean;
+    status?: string;
+  }
+) => {
+  const formData = new FormData();
+  Object.entries(data).forEach(([key, value]) => {
+    if (value !== undefined) {
+      if (key === 'logo' && value instanceof File) {
+        formData.append(key, value);
+      } else if (typeof value === 'boolean') {
+        formData.append(key, value ? 'true' : 'false');
+      } else if (typeof value === 'string') {
+        formData.append(key, value);
+      }
+    }
+  });
+  
+  const response = await api.put<Brand>(`/brands/${id}`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return response.data;
+};
+
+export const deleteBrand = async (id: number) => {
+  const response = await api.delete(`/brands/${id}`);
+  return response.data;
+};
+
+// Articles sauvegardés
+export const getSavedItems = async () => {
+  const response = await api.get<{ data: SavedItem[] }>("/SavedItems");
+  return response.data;
+};
+
+export const saveItem = async (product_id: number) => {
+  const response = await api.post("/SavedItems", { product_id });
+  return response.data;
+};
+
+export const removeSavedItem = async (product_id: number) => {
+  const response = await api.delete(`/SavedItems/${product_id}`);
+  return response.data;
+};
+
+// Méthodes de paiement
+export const getPaymentMethods = async () => {
+  const response = await api.get<{ data: PaymentMethod[] }>("/PaymentMethods");
+  return response.data;
+};
+
+export const addPaymentMethod = async (data: {
+  card_name: string;
+  card_number: string;
+  expiry: string;
+  cvv: string;
+  is_default?: boolean;
+}) => {
+  const response = await api.post("/PaymentMethods", data);
+  return response.data;
+};
+
+export const removePaymentMethod = async (id: number) => {
+  const response = await api.delete(`/PaymentMethods/${id}`);
+  return response.data;
+};
+
+export const setDefaultPaymentMethod = async (id: number) => {
+  const response = await api.put(`/PaymentMethods/${id}/default`);
+  return response.data;
+};
+
+// Carnet d'adresses
+export const getAddressBook = async () => {
+  const response = await api.get<{ data: Address[] }>("/AdressBook");
+  return response.data;
+};
+
+export const updateAddressBook = async (data: {
+  address_line1: string;
+  address_line2?: string;
+  city: string;
+  state?: string;
+  postal_code: string;
+  country: string;
+  is_default?: boolean;
+}) => {
+  const response = await api.put("/AdressBook", data);
+  return response.data;
+};
+
+export const addAddressBook = async (data: {
+  address_line1: string;
+  address_line2?: string;
+  city: string;
+  state?: string;
+  postal_code: string;
+  country: string;
+  is_default?: boolean;
+}) => {
+  const response = await api.post("/AdressBook", data);
+  return response.data;
+};
+
+export const removeAddressBook = async (id: string) => {
+  const response = await api.delete(`/AdressBook/${id}`);
+  return response.data;
+};
+
+export const setDefaultAddressBook = async (id: string) => {
+  const response = await api.put(`/AdressBook/${id}/default`);
   return response.data;
 };
 
 // Commandes
 export const getOrders = async () => {
   const response = await api.get("/orders");
+  return response.data;
+};
+
+// Historique des commandes de l'utilisateur
+export const getOrderHistory = async () => {
+  const response = await api.get("/OrderHistory");
   return response.data;
 };
 
@@ -331,8 +561,14 @@ export const createOrder = async (data: {
   items: { product_id: number; quantity: number }[];
   shipping_address: string;
   payment_method: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  guest_id?: string;
 }) => {
+  console.log('Envoi de la commande:', data);
   const response = await api.post("/orders", data);
+  console.log('Réponse de la commande:', response.data);
   return response.data;
 };
 
@@ -350,9 +586,17 @@ export const processPayment = async (data: {
   expiry_month?: string;
   expiry_year?: string;
   cvc?: string;
+  amount?: number;
 }) => {
-  const response = await api.post("/payments/process", data);
-  return response.data;
+  console.log('Envoi du paiement:', data);
+  try {
+    const response = await api.post("/payments/process", data);
+    console.log('Réponse du paiement:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Erreur de paiement:', error);
+    throw error;
+  }
 };
 
 export const getPaymentHistory = async () => {
@@ -416,27 +660,4 @@ export const getRelatedProducts = async (productId: string) => {
   return response.data;
 };
 
-// Articles favoris
-export const getSavedItems = async () => {
-  interface SavedItemsResponse {
-    data: Array<{
-      id: string;
-      name: string;
-      price: number;
-      image: string;
-      brand: string;
-      inStock: boolean;
-    }>;
-    [key: string]: unknown;
-  }
-  const response = await api.get<SavedItemsResponse>("/saved-items");
-  return response.data;
-};
-
-export const removeSavedItem = async (id: string) => {
-  const response = await api.delete(`/saved-items/${id}`);
-  return response.data;
-};
 export default api;
-
-

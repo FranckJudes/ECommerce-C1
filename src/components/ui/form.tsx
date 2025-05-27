@@ -65,12 +65,19 @@ export function FormField<T extends FieldValues>({
   className,
   render,
 }: FormFieldProps<T>) {
-  const {
-    formState: { errors },
-  } = useFormContext<T>();
+  let errors = {};
+  let fieldError = null;
+  let errorMessage = null;
 
-  const fieldError = (errors as FieldErrors<T>)[name];
-  const errorMessage = fieldError && "message" in fieldError ? fieldError.message : null;
+  try {
+    const formContext = useFormContext<T>();
+    errors = formContext?.formState?.errors || {};
+    fieldError = (errors as FieldErrors<T>)[name];
+    errorMessage = fieldError && "message" in fieldError ? fieldError.message : null;
+  } catch (error) {
+    console.warn("FormField utilisé sans FormProvider: ", error);
+    // Continuer sans contexte de formulaire
+  }
 
   return (
     <FormItem>

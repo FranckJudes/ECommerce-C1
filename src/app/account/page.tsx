@@ -10,7 +10,9 @@ import OrderHistory from "@/components/order-history";
 import SavedItems from "@/components/saved-items";
 import PaymentMethods from "@/components/payment-methods";
 import AddressBook from "@/components/address-book";
+import UserBrands from "@/components/user-brands";
 import { useAuth } from "../../../lib/auth-context";
+
 export default function AccountPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
@@ -54,6 +56,9 @@ export default function AccountPage() {
           <TabsTrigger value="addresses" className="flex-1">
             Adresses
           </TabsTrigger>
+          <TabsTrigger value="brands" className="flex-1">
+            Marques
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
@@ -74,6 +79,10 @@ export default function AccountPage() {
 
         <TabsContent value="addresses">
           <AddressBook />
+        </TabsContent>
+
+        <TabsContent value="brands">
+          <UserBrands />
         </TabsContent>
       </Tabs>
     </div>

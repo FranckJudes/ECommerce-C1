@@ -1,6 +1,4 @@
-// app/admin/page.tsx
 "use client";
-
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,7 +22,7 @@ export default function AdminDashboard() {
   };
 
   if (!user || user.role !== "admin") {
-    return null; // Redirection en cours
+    return null; 
   }
 
   return (

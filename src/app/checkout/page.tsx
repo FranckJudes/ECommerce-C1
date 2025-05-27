@@ -15,7 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "../../../lib/auth-context";
 import { createOrder, processPayment } from "../../../lib/api";
-// import { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import CheckoutSummary from "@/components/checkout-summary";
 
 interface CartItem {
@@ -68,7 +68,7 @@ export default function CheckoutPage() {
   });
   const [shippingMethod, setShippingMethod] = useState<"standard" | "express">("standard");
   const [isLoading, setIsLoading] = useState(false);
-  const { cart, clearCart } = useCart() as unknown as { cart: CartItem[]; clearCart: () => void };
+  const { cart = [], clearCart } = useCart() as unknown as { cart: CartItem[]; clearCart: () => void };
   const { user } = useAuth();
   const router = useRouter();
 
@@ -106,21 +106,58 @@ export default function CheckoutPage() {
       "country",
       "phone",
     ];
-    return requiredFields.every((field) => (shippingInfo[field] ?? "").trim() !== "");
+    
+    // Vérifier que tous les champs requis sont remplis
+    const allFieldsFilled = requiredFields.every((field) => {
+      const value = shippingInfo[field];
+      return value !== undefined && value.trim() !== "";
+    });
+
+    // Validation email basique
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shippingInfo.email);
+
+    if (!allFieldsFilled) {
+      console.log("Champs manquants:", requiredFields.filter(field => !shippingInfo[field]?.trim()));
+      return false;
+    }
+
+    if (!emailValid) {
+      toast({
+        title: "Email invalide",
+        description: "Veuillez entrer une adresse email valide.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
   };
 
   const validatePayment = () => {
     if (paymentInfo.paymentMethod === "card") {
-      return (
+      const hasAllCardInfo = !!(
         paymentInfo.cardName?.trim() &&
         paymentInfo.cardNumber?.trim() &&
         paymentInfo.expiry?.trim() &&
         paymentInfo.cvv?.trim()
       );
+
+      if (!hasAllCardInfo) {
+        console.log("Informations de carte manquantes:", {
+          cardName: !paymentInfo.cardName?.trim(),
+          cardNumber: !paymentInfo.cardNumber?.trim(),
+          expiry: !paymentInfo.expiry?.trim(),
+          cvv: !paymentInfo.cvv?.trim()
+        });
+      }
+
+      return hasAllCardInfo;
     } else if (paymentInfo.paymentMethod === "mtn") {
-      return paymentInfo.phoneNumber?.trim();
+      return !!paymentInfo.phoneNumber?.trim();
+    } else if (paymentInfo.paymentMethod === "paypal") {
+      return true; // PayPal est simulé
     }
-    return true; // PayPal (simulé)
+    return false;
   };
 
   const handlePlaceOrder = async () => {
@@ -144,12 +181,13 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (cart.length === 0) {
+    if (!cart || cart.length === 0) {
       toast({
         title: "Panier vide",
         description: "Votre panier est vide. Ajoutez des produits avant de passer une commande.",
         variant: "destructive",
       });
+      router.push("/products");
       return;
     }
 
@@ -162,17 +200,22 @@ export default function CheckoutPage() {
       // Préparer les données de la commande
       const orderData = {
         items: cart.map((item) => ({
-          product_id: parseInt(item.id),
+          product_id: parseInt(item.id) || 1,
           quantity: item.quantity,
         })),
         shipping_address: shippingAddress,
         payment_method: paymentInfo.paymentMethod,
+        name: `${shippingInfo.firstName} ${shippingInfo.lastName}`,
         email: shippingInfo.email,
-        guest_id: user ? undefined : guestId, // Inclure guest_id si non connecté
+        phone: shippingInfo.phone,
+        guest_id: user ? undefined : guestId,
       };
+
+      console.log("Données de commande:", orderData);
 
       // Créer la commande
       const orderResponse = await createOrder(orderData);
+      console.log("Réponse de commande:", orderResponse);
 
       // Traiter le paiement
       const paymentData: {
@@ -183,22 +226,36 @@ export default function CheckoutPage() {
         expiry_month?: string;
         expiry_year?: string;
         cvc?: string;
+        amount?: number;
       } = {
         order_id: orderResponse.id,
         payment_method: paymentInfo.paymentMethod,
+        amount: cart.reduce((total, item) => total + (item.price * item.quantity), 0)
       };
 
       if (paymentInfo.paymentMethod === "card") {
-        const [expiryMonth, expiryYear] = paymentInfo.expiry!.split("/");
+        const [expiryMonth, expiryYear] = (paymentInfo.expiry || "01/25").split("/");
         paymentData.card_number = paymentInfo.cardNumber;
         paymentData.expiry_month = expiryMonth;
-        paymentData.expiry_year = `20${expiryYear}`;
+        paymentData.expiry_year = expiryYear.length === 2 ? `20${expiryYear}` : expiryYear;
         paymentData.cvc = paymentInfo.cvv;
       } else if (paymentInfo.paymentMethod === "mtn") {
         paymentData.phone_number = paymentInfo.phoneNumber;
       }
 
-      await processPayment(paymentData);
+      console.log("Données de paiement:", paymentData);
+
+      try {
+        const paymentResponse = await processPayment(paymentData);
+        console.log("Réponse de paiement:", paymentResponse);
+      } catch (paymentError) {
+        console.error("Erreur de paiement:", paymentError);
+        toast({
+          title: "Avertissement de paiement",
+          description: "Le paiement a rencontré un problème, mais la commande a été créée.",
+          variant: "destructive",
+        });
+      }
 
       // Vider le panier
       clearCart();
@@ -206,17 +263,70 @@ export default function CheckoutPage() {
       // Rediriger vers la page de confirmation
       toast({
         title: "Commande passée avec succès",
-        description: `Votre commande #${orderResponse.id} a été créée et le paiement a été traité.`,
+        description: `Votre commande #${orderResponse.id} a été créée.`,
       });
       router.push(`/orders/${orderResponse.id}`);
     } catch (error: unknown) {
+      console.error("Erreur complète:", error);
       toast({
         title: "Erreur lors de la commande",
-        description: (error as Error)?.message || "Une erreur s'est produite lors de la création de la commande.",
+        description: (error as any)?.response?.data?.message || (error as Error)?.message || "Une erreur s'est produite lors de la création de la commande.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleContinueToPayment = () => {
+    if (validateShipping()) {
+      setStep("payment");
+    } else {
+      // Afficher les champs manquants pour debug
+      const requiredFields: Array<keyof ShippingInfo> = [
+        "firstName",
+        "lastName",
+        "email",
+        "address",
+        "city",
+        "state",
+        "zip",
+        "country",
+        "phone",
+      ];
+      
+      const missingFields = requiredFields.filter(field => !shippingInfo[field]?.trim());
+      
+      toast({
+        title: "Informations manquantes",
+        description: `Veuillez remplir tous les champs requis: ${missingFields.join(", ")}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleContinueToReview = () => {
+    if (validatePayment()) {
+      setStep("review");
+    } else {
+      let missingInfo = "";
+      
+      if (paymentInfo.paymentMethod === "card") {
+        const missing = [];
+        if (!paymentInfo.cardName?.trim()) missing.push("nom sur la carte");
+        if (!paymentInfo.cardNumber?.trim()) missing.push("numéro de carte");
+        if (!paymentInfo.expiry?.trim()) missing.push("date d'expiration");
+        if (!paymentInfo.cvv?.trim()) missing.push("CVV");
+        missingInfo = missing.join(", ");
+      } else if (paymentInfo.paymentMethod === "mtn") {
+        missingInfo = "numéro de téléphone";
+      }
+      
+      toast({
+        title: "Informations de paiement manquantes",
+        description: `Veuillez fournir: ${missingInfo}`,
+        variant: "destructive",
+      });
     }
   };
 
@@ -267,94 +377,103 @@ export default function CheckoutPage() {
                 <h2 className="text-xl font-bold mb-4">Informations de livraison</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">Prénom</Label>
+                    <Label htmlFor="firstName">Prénom *</Label>
                     <Input
                       id="firstName"
                       value={shippingInfo.firstName}
                       onChange={handleShippingChange}
                       placeholder="John"
+                      required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Nom</Label>
+                    <Label htmlFor="lastName">Nom *</Label>
                     <Input
                       id="lastName"
                       value={shippingInfo.lastName}
                       onChange={handleShippingChange}
                       placeholder="Doe"
+                      required
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">Email *</Label>
                     <Input
                       id="email"
                       type="email"
                       value={shippingInfo.email}
                       onChange={handleShippingChange}
                       placeholder="john.doe@example.com"
+                      required
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="address">Adresse</Label>
+                    <Label htmlFor="address">Adresse *</Label>
                     <Input
                       id="address"
                       value={shippingInfo.address}
                       onChange={handleShippingChange}
                       placeholder="123 Main St"
+                      required
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="address2">Appartement, suite, etc. (optionnel)</Label>
                     <Input
                       id="address2"
-                      value={shippingInfo.address2}
+                      value={shippingInfo.address2 || ""}
                       onChange={handleShippingChange}
                       placeholder="Apt 4B"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="city">Ville</Label>
+                    <Label htmlFor="city">Ville *</Label>
                     <Input
                       id="city"
                       value={shippingInfo.city}
                       onChange={handleShippingChange}
                       placeholder="New York"
+                      required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="state">État</Label>
+                    <Label htmlFor="state">État/Province *</Label>
                     <Input
                       id="state"
                       value={shippingInfo.state}
                       onChange={handleShippingChange}
                       placeholder="NY"
+                      required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="zip">Code postal</Label>
+                    <Label htmlFor="zip">Code postal *</Label>
                     <Input
                       id="zip"
                       value={shippingInfo.zip}
                       onChange={handleShippingChange}
                       placeholder="10001"
+                      required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="country">Pays</Label>
+                    <Label htmlFor="country">Pays *</Label>
                     <Input
                       id="country"
                       value={shippingInfo.country}
                       onChange={handleShippingChange}
                       placeholder="United States"
+                      required
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="phone">Téléphone</Label>
+                    <Label htmlFor="phone">Téléphone *</Label>
                     <Input
                       id="phone"
                       value={shippingInfo.phone}
                       onChange={handleShippingChange}
                       placeholder="(123) 456-7890"
+                      required
                     />
                   </div>
                 </div>
@@ -397,17 +516,7 @@ export default function CheckoutPage() {
               <Button
                 className="w-full"
                 size="lg"
-                onClick={() => {
-                  if (validateShipping()) {
-                    setStep("payment");
-                  } else {
-                    toast({
-                      title: "Informations manquantes",
-                      description: "Veuillez remplir tous les champs d'adresse requis.",
-                      variant: "destructive",
-                    });
-                  }
-                }}
+                onClick={handleContinueToPayment}
               >
                 Continuer vers le paiement
               </Button>
@@ -432,39 +541,43 @@ export default function CheckoutPage() {
                   <TabsContent value="card" className="space-y-4 mt-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="cardName">Nom sur la carte</Label>
+                        <Label htmlFor="cardName">Nom sur la carte *</Label>
                         <Input
                           id="cardName"
                           value={paymentInfo.cardName || ""}
                           onChange={(e) => handlePaymentChange("cardName", e.target.value)}
                           placeholder="John Doe"
+                          required
                         />
                       </div>
                       <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="cardNumber">Numéro de carte</Label>
+                        <Label htmlFor="cardNumber">Numéro de carte *</Label>
                         <Input
                           id="cardNumber"
                           value={paymentInfo.cardNumber || ""}
                           onChange={(e) => handlePaymentChange("cardNumber", e.target.value)}
                           placeholder="1234 5678 9012 3456"
+                          required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="expiry">Date d&apos;expiration</Label>
+                        <Label htmlFor="expiry">Date d&apos;expiration *</Label>
                         <Input
                           id="expiry"
                           value={paymentInfo.expiry || ""}
                           onChange={(e) => handlePaymentChange("expiry", e.target.value)}
                           placeholder="MM/YY"
+                          required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="cvv">CVV</Label>
+                        <Label htmlFor="cvv">CVV *</Label>
                         <Input
                           id="cvv"
                           value={paymentInfo.cvv || ""}
                           onChange={(e) => handlePaymentChange("cvv", e.target.value)}
                           placeholder="123"
+                          required
                         />
                       </div>
                     </div>
@@ -472,12 +585,13 @@ export default function CheckoutPage() {
 
                   <TabsContent value="mtn" className="space-y-4 mt-4">
                     <div className="space-y-2">
-                      <Label htmlFor="phoneNumber">Numéro de téléphone MTN</Label>
+                      <Label htmlFor="phoneNumber">Numéro de téléphone MTN *</Label>
                       <Input
                         id="phoneNumber"
                         value={paymentInfo.phoneNumber || ""}
                         onChange={(e) => handlePaymentChange("phoneNumber", e.target.value)}
                         placeholder="237612345678"
+                        required
                       />
                     </div>
                   </TabsContent>
@@ -485,7 +599,9 @@ export default function CheckoutPage() {
                   <TabsContent value="paypal" className="mt-4">
                     <div className="text-center py-8">
                       <p className="mb-4">Vous serez redirigé vers PayPal pour compléter votre paiement.</p>
-                      <Button disabled>Continuer avec PayPal</Button>
+                      <Button variant="secondary" disabled>
+                        Continuer avec PayPal (Simulation)
+                      </Button>
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -511,17 +627,7 @@ export default function CheckoutPage() {
                 </Button>
                 <Button
                   className="flex-1"
-                  onClick={() => {
-                    if (validatePayment()) {
-                      setStep("review");
-                    } else {
-                      toast({
-                        title: "Informations de paiement manquantes",
-                        description: "Veuillez fournir toutes les informations de paiement requises.",
-                        variant: "destructive",
-                      });
-                    }
-                  }}
+                  onClick={handleContinueToReview}
                 >
                   Vérifier la commande
                 </Button>
@@ -564,7 +670,7 @@ export default function CheckoutPage() {
                     </div>
                     <p className="text-sm">
                       {paymentInfo.paymentMethod === "card"
-                        ? `Carte se terminant par ${paymentInfo.cardNumber?.slice(-4)}`
+                        ? `Carte se terminant par ${paymentInfo.cardNumber?.slice(-4) || "****"}`
                         : paymentInfo.paymentMethod === "mtn"
                         ? `MTN Mobile Money (${paymentInfo.phoneNumber})`
                         : "PayPal"}
@@ -574,27 +680,31 @@ export default function CheckoutPage() {
                   <div className="border rounded-lg p-4">
                     <h3 className="font-medium mb-2">Articles</h3>
                     <div className="space-y-3">
-                      {cart.map((item) => (
-                        <div key={item.id} className="flex gap-4">
-                          <div className="w-16 h-16 bg-muted rounded-md flex-shrink-0">
-                            <Image
-                              src={item.image || "/placeholder.svg"}
-                              alt={item.name}
-                              width={64}
-                              height={64}
-                              className="rounded-md"
-                            />
+                      {cart && cart.length > 0 ? (
+                        cart.map((item) => (
+                          <div key={item.id} className="flex gap-4">
+                            <div className="w-16 h-16 bg-muted rounded-md flex-shrink-0">
+                              <Image
+                                src={item.image || "/placeholder.svg"}
+                                alt={item.name}
+                                width={64}
+                                height={64}
+                                className="rounded-md object-cover w-full h-full"
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium">{item.name}</p>
+                              <p className="text-sm text-muted-foreground">Taille: {item.size}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">${item.price}</p>
+                              <p className="text-sm text-muted-foreground">Qté: {item.quantity}</p>
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <p className="font-medium">{item.name}</p>
-                            <p className="text-sm text-muted-foreground">Taille: {item.size}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium">{item.price} €</p>
-                            <p className="text-sm text-muted-foreground">Qté: {item.quantity}</p>
-                          </div>
-                        </div>
-                      ))}
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Aucun article dans le panier</p>
+                      )}
                     </div>
                   </div>
                 </div>

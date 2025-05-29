@@ -149,7 +149,7 @@ export default function ProductSearch() {
                 >
                   <div className="w-16 h-16 bg-muted rounded-md overflow-hidden">
                     <Image
-                      src={product.image || "/placeholder.svg"}
+                      src={product.image && !product.image.startsWith('/') ? product.image : product.image && product.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${product.image}` : "/placeholder.svg"}
                       alt={product.name}
                       width={80}
                       height={80}

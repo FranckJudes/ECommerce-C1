@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
+import Image from "next/image";
 import {
   Table,
   TableBody,
@@ -42,6 +43,7 @@ export default function CategoriesPage() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    image: null as File | null,
   });
   const router = useRouter();
   const { user } = useAuth();
@@ -82,11 +84,28 @@ export default function CategoriesPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFormData((prev) => ({ ...prev, image: e.target.files![0] }));
+    }
+  };
+
   const handleAddCategory = async () => {
     try {
-      await createCategory(formData);
+      // Create FormData object for file upload
+      const formDataObj = new FormData();
+      formDataObj.append('name', formData.name);
+      formDataObj.append('description', formData.description);
+      
+      // Append image file if it exists
+      if (formData.image) {
+        formDataObj.append('image', formData.image);
+      }
+      
+      // @ts-ignore - FormData is handled in the createCategory function
+      await createCategory(formDataObj);
       setIsAddDialogOpen(false);
-      setFormData({ name: "", description: "" });
+      setFormData({ name: "", description: "", image: null });
       toast({
         title: "Succès",
         description: "Catégorie ajoutée avec succès",
@@ -106,10 +125,21 @@ export default function CategoriesPage() {
     if (!selectedCategory) return;
 
     try {
-      await updateCategory(selectedCategory.id, formData);
+      // Create FormData object for file upload
+      const formDataObj = new FormData();
+      formDataObj.append('name', formData.name);
+      formDataObj.append('description', formData.description);
+      
+      // Append image file if it exists
+      if (formData.image) {
+        formDataObj.append('image', formData.image);
+      }
+      
+      // @ts-ignore - FormData is handled in the updateCategory function
+      await updateCategory(selectedCategory.id, formDataObj);
       setIsEditDialogOpen(false);
       setSelectedCategory(null);
-      setFormData({ name: "", description: "" });
+      setFormData({ name: "", description: "", image: null });
       toast({
         title: "Succès",
         description: "Catégorie mise à jour avec succès",
@@ -152,6 +182,7 @@ export default function CategoriesPage() {
     setFormData({
       name: category.name,
       description: category.description,
+      image: null,
     });
     setIsEditDialogOpen(true);
   };
@@ -174,7 +205,7 @@ export default function CategoriesPage() {
             <Link href="/admin">Retour au tableau de bord</Link>
           </Button>
           <Button onClick={() => {
-            setFormData({ name: "", description: "" });
+            setFormData({ name: "", description: "", image: null });
             setIsAddDialogOpen(true);
           }}>
             Ajouter une catégorie
@@ -206,11 +237,24 @@ export default function CategoriesPage() {
               ) : (
                 categories.map((category) => (
                   <TableRow key={category.id}>
-                    <TableCell>{category.id}</TableCell>
-                    <TableCell className="font-medium">{category.name}</TableCell>
                     <TableCell>
-                      {category.description.length > 50
-                        ? `${category.description.substring(0, 50)}...`
+                      <div className="flex items-center gap-3">
+                        {category.image && (
+                          <div className="relative w-10 h-10 overflow-hidden rounded-md">
+                            <Image 
+                              src={category.image && !category.image.startsWith('/') ? category.image : category.image && category.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${category.image}` : "/placeholder.svg"}
+                              alt={category.name}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        )}
+                        {category.name}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {category.description.length > 100
+                        ? `${category.description.substring(0, 100)}...`
                         : category.description}
                     </TableCell>
                     <TableCell>
@@ -270,6 +314,17 @@ export default function CategoriesPage() {
                 rows={4}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="image">Image</Label>
+              <Input
+                id="image"
+                name="image"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+              />
+              <p className="text-xs text-gray-500">Formats acceptés: JPG, PNG, GIF (max 2MB)</p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -307,6 +362,30 @@ export default function CategoriesPage() {
                 placeholder="Description de la catégorie"
                 rows={4}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-image">Image</Label>
+              {selectedCategory?.image && (
+                <div className="mb-2">
+                  <p className="text-sm text-gray-500 mb-1">Image actuelle:</p>
+                  <div className="relative w-32 h-32 overflow-hidden rounded-md border border-gray-200">
+                    <Image
+                      src={selectedCategory.image && !selectedCategory.image.startsWith('/') ? selectedCategory.image : selectedCategory.image && selectedCategory.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${selectedCategory.image}` : "/placeholder.svg"}
+                      alt={selectedCategory.name}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+              <Input
+                id="edit-image"
+                name="image"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+              />
+              <p className="text-xs text-gray-500">Formats acceptés: JPG, PNG, GIF (max 2MB)</p>
             </div>
           </div>
           <DialogFooter>

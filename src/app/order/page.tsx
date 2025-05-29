@@ -191,7 +191,7 @@ export default function OrdersPage() {
                         <div key={item.id} className="flex gap-4">
                           <div className="w-16 h-16 bg-muted rounded-md flex-shrink-0">
                             <Image
-                              src={item.product.image || "/placeholder.svg"}
+                              src={item.product.image && !item.product.image.startsWith('/') ? item.product.image : item.product.image && item.product.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${item.product.image}` : "/placeholder.svg"}
                               alt={item.product.name}
                               className="rounded-md object-cover w-full h-full"
                             />

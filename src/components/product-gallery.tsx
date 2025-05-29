@@ -20,7 +20,7 @@ export default function ProductGallery() {
     <div className="flex flex-col gap-4">
       <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
         <Image
-          src={images[selectedImage] || "/placeholder.svg"}
+          src={images[selectedImage] && !images[selectedImage].startsWith('/') ? images[selectedImage] : images[selectedImage] && images[selectedImage].startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${images[selectedImage]}` : "/placeholder.svg"}
           alt={`Product image ${selectedImage + 1}`}
           fill
           className="object-cover"
@@ -39,7 +39,7 @@ export default function ProductGallery() {
             onClick={() => setSelectedImage(index)}
           >
             <Image
-              src={image || "/placeholder.svg"}
+              src={image && !image.startsWith('/') ? image : image && image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${image}` : "/placeholder.svg"}
               alt={`Product thumbnail ${index + 1}`}
               fill
               className="object-cover"

@@ -68,13 +68,13 @@ export default function BrandsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredBrands.map((brand) => (
-            <Link key={brand.id} href={`/brands/${brand.id}`} className="group">
+            <Link key={brand.id} href='#' className="group">
               <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all h-full">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-4 mb-4">
                     <div className="relative w-16 h-16 bg-muted rounded-md overflow-hidden">
                       <Image
-                        src={brand.image || "/placeholder.svg"}
+                        src={brand.image && !brand.image.startsWith('/') ? brand.image : brand.image && brand.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${brand.image}` : "/placeholder.svg"}
                         alt={brand.name}
                         fill
                         className="object-contain p-2"

@@ -147,7 +147,7 @@ export default function ProductCard({ id, name, price, image, brand, is_new, is_
         <CardContent className="p-0">
           <div className="relative aspect-square overflow-hidden bg-muted">
             <Image
-              src={image || "/placeholder.svg"}
+              src={image && !image.startsWith('/') ? image : image && image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${image}` : "/placeholder.svg"}
               alt={name}
               fill
               className="object-cover transition-transform group-hover:scale-105"

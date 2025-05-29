@@ -98,7 +98,7 @@ export default function OrderHistory() {
                         <div key={item.id} className="flex gap-4 items-center">
                           <div className="w-16 h-16 bg-muted rounded-md flex-shrink-0">
                             <Image
-                              src={item.image || "/placeholder.svg"}
+                              src={item.image && !item.image.startsWith('/') ? item.image : item.image && item.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${item.image}` : "/placeholder.svg"}
                               alt={item.name}
                               width={64}
                               height={64}

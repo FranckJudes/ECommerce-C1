@@ -55,7 +55,7 @@ export default function CartDrawer() {
                   <div key={item.id} className="flex gap-4">
                     <div className="h-20 w-20 rounded-md border bg-muted">
                       <Image
-                        src={item.image || "/placeholder.svg"}
+                        src={item.image && !item.image.startsWith('/') ? item.image : item.image && item.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${item.image}` : "/placeholder.svg"}
                         alt={item.name}
                         width={80}
                         height={80}

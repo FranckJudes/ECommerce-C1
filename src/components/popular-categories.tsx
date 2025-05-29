@@ -117,7 +117,7 @@ export default function PopularCategories() {
             <CardContent className="p-0">
               <div className="relative aspect-square overflow-hidden bg-muted">
                 <Image
-                  src={category.image || "/placeholder.svg"} // Repli sur placeholder
+                  src={category.image && !category.image.startsWith('/') ? category.image : category.image && category.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${category.image}` : "/placeholder.svg"} // Repli sur placeholder
                   alt={category.name}
                   fill
                   className="object-cover transition-transform group-hover:scale-105"

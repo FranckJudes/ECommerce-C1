@@ -82,7 +82,7 @@ export default function FeaturedProducts() {
             <CardContent className="p-0">
               <div className="relative aspect-square overflow-hidden bg-muted">
                 <Image
-                  src={product.image || "/placeholder.svg"}
+                  src={product.image && !product.image.startsWith('/') ? product.image : product.image && product.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${product.image}` : "/placeholder.svg"}
                   alt={product.name || "Produit sans nom"}
                   fill
                   className="object-cover transition-transform group-hover:scale-105"

@@ -92,7 +92,7 @@ export default function SavedItems() {
               <CardContent className="p-0">
                 <div className="relative aspect-square overflow-hidden bg-muted">
                   <Image 
-                    src={item.product?.image || "/placeholder.svg"} 
+                    src={item.product?.image && !item.product.image.startsWith('/') ? item.product.image : item.product?.image && item.product.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${item.product.image}` : "/placeholder.svg"} 
                     alt={item.product?.name || "Produit"} 
                     fill 
                     className="object-cover" 

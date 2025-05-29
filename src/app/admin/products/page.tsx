@@ -89,7 +89,7 @@ const productSchema = z.object({
   stock: z.coerce.number().int().min(0, "Le stock doit être un entier positif"),
   category_id: z.coerce.number().int().min(1, "La catégorie est requise"),
   brand_id: z.coerce.number().int().optional(),
-  image: z.string().optional(),
+  image: z.any().optional(),
   featured: z.boolean().optional(),
   coming_soon: z.boolean().optional(),
 });
@@ -152,8 +152,33 @@ export default function AdminProductsPage() {
 
   const handleCreateProduct = async (data: ProductFormData) => {
     try {
-      console.log("Données du formulaire:", data);
-      const newProduct = await createProduct(data);
+      // Create FormData object for file upload
+      const formData = new FormData();
+      formData.append('name', data.name);
+      formData.append('description', data.description);
+      formData.append('price', data.price.toString());
+      formData.append('stock', data.stock.toString());
+      formData.append('category_id', data.category_id.toString());
+      
+      if (data.brand_id) {
+        formData.append('brand_id', data.brand_id.toString());
+      }
+      
+      if (data.featured !== undefined) {
+        formData.append('featured', data.featured ? '1' : '0');
+      }
+      
+      if (data.coming_soon !== undefined) {
+        formData.append('coming_soon', data.coming_soon ? '1' : '0');
+      }
+      
+      // Append image file if it exists
+      if (data.image && data.image instanceof FileList && data.image.length > 0) {
+        formData.append('image', data.image[0]);
+      }
+      
+      // @ts-ignore - FormData is handled in the createProduct function
+      const newProduct = await createProduct(formData);
       setProducts([...products, newProduct]);
       toast({
         title: "Succès",
@@ -344,15 +369,19 @@ export default function AdminProductsPage() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="image">URL de l&apos;image</Label>
+                <Label htmlFor="image">Image du produit</Label>
                 <Input 
                   id="image" 
-                  placeholder="https://exemple.com/image.jpg" 
-                  {...form.register("image")} 
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    form.setValue("image", e.target.files);
+                  }}
                 />
                 {form.formState.errors.image && (
                   <p className="text-sm text-red-500">{form.formState.errors.image.message as string}</p>
                 )}
+                <p className="text-xs text-gray-500">Formats acceptés: JPG, PNG, GIF (max 2MB)</p>
               </div>
               
               <div className="flex items-center space-x-2">

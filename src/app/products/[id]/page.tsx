@@ -200,10 +200,11 @@ export default function ProductPage() {
         <div className="space-y-4">
           <div className="aspect-square relative overflow-hidden rounded-lg bg-muted">
             <Image
-              src={product.image || "/placeholder.svg"}
+              src={product.image && !product.image.startsWith('/') ? product.image : product.image && product.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${product.image}` : "/placeholder.svg"}
               alt={product.name}
               fill
               className="object-cover"
+              priority
             />
           </div>
           {/* Simuler plusieurs images si nécessaire */}
@@ -211,7 +212,7 @@ export default function ProductPage() {
             {[product.image, product.image, product.image, product.image].map((image, index) => (
               <div key={index} className="aspect-square relative overflow-hidden rounded-md bg-muted cursor-pointer">
                 <Image
-                  src={image || "/placeholder.svg"}
+                  src={image && !image.startsWith('/') ? image : image && image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${image}` : "/placeholder.svg"}
                   alt={`${product.name} - Image ${index + 1}`}
                   fill
                   className="object-cover"
@@ -315,7 +316,7 @@ export default function ProductPage() {
                   <div className="p-0">
                     <div className="relative aspect-square overflow-hidden bg-muted">
                       <Image
-                        src={relatedProduct.image || "/placeholder.svg"}
+                        src={relatedProduct.image && !relatedProduct.image.startsWith('/') ? relatedProduct.image : relatedProduct.image && relatedProduct.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${relatedProduct.image}` : "/placeholder.svg"}
                         alt={relatedProduct.name}
                         fill
                         className="object-cover transition-transform group-hover:scale-105"

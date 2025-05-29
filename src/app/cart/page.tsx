@@ -86,7 +86,7 @@ export default function CartPage() {
                   <div key={item.id} className="py-6 flex flex-col sm:flex-row gap-4">
                     <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-md border bg-muted">
                       <Image
-                        src={item.image || "/placeholder.svg"}
+                        src={item.image && !item.image.startsWith('/') ? item.image : item.image && item.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${item.image}` : "/placeholder.svg"}
                         alt={item.name}
                         width={96}
                         height={96}

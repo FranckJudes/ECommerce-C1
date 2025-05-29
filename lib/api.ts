@@ -44,6 +44,7 @@ export interface Category {
   id: number;
   name: string;
   description: string;
+  image?: string;
   created_at: string;
   updated_at: string;
 }
@@ -268,36 +269,62 @@ export const getProduct = async (id: number) => {
   return response.data;
 };
 
-export const createProduct = async (data: {
+export const createProduct = async (data: FormData | {
   name: string;
   description: string;
   price: number;
   stock: number;
   category_id: number;
   brand_id?: number;
-  image?: string;
+  image?: string | FileList;
   featured?: boolean;
   coming_soon?: boolean;
 }) => {
-  const response = await api.post<Product>("/products", data);
+  let response;
+  
+  if (data instanceof FormData) {
+    // If FormData is provided (for file uploads), use different headers
+    response = await api.post<Product>("/products", data, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  } else {
+    // Regular JSON request
+    response = await api.post<Product>("/products", data);
+  }
+  
   return response.data;
 };
 
 export const updateProduct = async (
   id: number,
-  data: {
+  data: FormData | {
     name?: string;
     description?: string;
     price?: number;
     stock?: number;
     category_id?: number;
     brand_id?: number;
-    image?: string;
+    image?: string | FileList;
     featured?: boolean;
     coming_soon?: boolean;
   }
 ) => {
-  const response = await api.put<Product>(`/products/${id}`, data);
+  let response;
+  
+  if (data instanceof FormData) {
+    // If FormData is provided (for file uploads), use different headers
+    response = await api.put<Product>(`/products/${id}`, data, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  } else {
+    // Regular JSON request
+    response = await api.put<Product>(`/products/${id}`, data);
+  }
+  
   return response.data;
 };
 
@@ -331,22 +358,50 @@ export const getCategoryProducts = async (
   return response.data;
 };
 
-export const createCategory = async (data: {
+export const createCategory = async (data: FormData | {
   name: string;
   description: string;
+  image?: File | null;
 }) => {
-  const response = await api.post<Category>("/categories", data);
+  let response;
+  
+  if (data instanceof FormData) {
+    // If FormData is provided (for file uploads), use different headers
+    response = await api.post<Category>("/categories", data, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  } else {
+    // Regular JSON request
+    response = await api.post<Category>("/categories", data);
+  }
+  
   return response.data;
 };
 
 export const updateCategory = async (
   id: number,
-  data: {
+  data: FormData | {
     name?: string;
     description?: string;
+    image?: File | null;
   }
 ) => {
-  const response = await api.put<Category>(`/categories/${id}`, data);
+  let response;
+  
+  if (data instanceof FormData) {
+    // If FormData is provided (for file uploads), use different headers
+    response = await api.put<Category>(`/categories/${id}`, data, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  } else {
+    // Regular JSON request
+    response = await api.put<Category>(`/categories/${id}`, data);
+  }
+  
   return response.data;
 };
 

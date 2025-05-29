@@ -62,7 +62,7 @@ export default function CategoryProductsPage() {
                 <CardContent className="p-0">
                   <div className="relative aspect-square overflow-hidden bg-muted">
                     <Image
-                      src={product.image || "/placeholder.svg"}
+                      src={product.image && !product.image.startsWith('/') ? product.image : product.image && product.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${product.image}` : "/placeholder.svg"}
                       alt={product.name}
                       fill
                       className="object-cover transition-transform hover:scale-105"

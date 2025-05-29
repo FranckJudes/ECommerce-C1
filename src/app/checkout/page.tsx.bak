@@ -169,155 +169,182 @@ export default function CheckoutPage() {
         });
       }
       return hasPhoneNumber;
-    } else if (paymentInfo.paymentMethod === "paypal") {
-      return true; // PayPal est simulé
     }
-    return false;
+
+    // PayPal est toujours valide car l'authentification se fait sur leur site
+    return true;
   };
 
   const handlePlaceOrder = async () => {
-    if (!validateShipping()) {
-      setStep("shipping");
-      return;
-    }
-
     if (!validatePayment()) {
-      setStep("payment");
       return;
     }
-
-    if (!cart || cart.length === 0) {
+    
+    if (cart.length === 0) {
       toast({
         title: "Panier vide",
-        description: "Votre panier est vide. Ajoutez des produits avant de passer une commande.",
+        description: "Votre panier est vide. Ajoutez des produits avant de passer commande.",
         variant: "destructive",
       });
-      router.push("/products");
       return;
     }
 
     setIsLoading(true);
 
-    setIsLoading(true);
-    
     try {
-      // Créer l'adresse de livraison
-      const shippingAddress = `${shippingInfo.address}${shippingInfo.address2 ? ", " + shippingInfo.address2 : ""}, ${shippingInfo.city}, ${shippingInfo.state} ${shippingInfo.zip}, ${shippingInfo.country}`;
+      // Simuler un traitement de paiement
+      const paymentResult = await processPayment({
+        amount: cart.reduce((total, item) => total + item.price * item.quantity, 0),
+        method: paymentInfo.paymentMethod,
+        cardDetails:
+          paymentInfo.paymentMethod === "card"
+            ? {
+                name: paymentInfo.cardName || "",
+                number: paymentInfo.cardNumber || "",
+                expiry: paymentInfo.expiry || "",
+                cvv: paymentInfo.cvv || "",
+              }
+            : undefined,
+        phoneNumber: paymentInfo.paymentMethod === "mtn" ? paymentInfo.phoneNumber : undefined,
+      });
 
-      // Préparer les données de la commande
-      const orderData = {
-        items: cart.map((item) => ({
-          product_id: parseInt(item.id) || 1,
-          quantity: item.quantity,
-        })),
-        shipping_address: shippingAddress,
-        payment_method: paymentInfo.paymentMethod,
-        name: `${shippingInfo.firstName} ${shippingInfo.lastName}`,
-        email: shippingInfo.email,
-        phone: shippingInfo.phone,
-        guest_id: user ? undefined : guestId,
-      };
+      if (paymentResult.success) {
+        // Créer la commande
+        const orderData = {
+          user_id: user?.id || null,
+          guest_id: !user ? guestId : null,
+          shipping_address: `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state}, ${shippingInfo.zip}, ${shippingInfo.country}`,
+          billing_address: `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state}, ${shippingInfo.zip}, ${shippingInfo.country}`,
+          shipping_method: shippingMethod,
+          payment_method: paymentInfo.paymentMethod,
+          payment_status: "paid",
+          order_status: "processing",
+          items: cart.map((item) => ({
+            product_id: parseInt(item.id) || 0,
+            quantity: item.quantity,
+            price: item.price,
+            size: item.size,
+          })),
+          subtotal: cart.reduce((total, item) => total + item.price * item.quantity, 0),
+          shipping_cost: shippingMethod === "express" ? 14.99 : 4.99,
+          tax: cart.reduce((total, item) => total + item.price * item.quantity, 0) * 0.2, // 20% TVA
+          total_amount:
+            cart.reduce((total, item) => total + item.price * item.quantity, 0) +
+            (shippingMethod === "express" ? 14.99 : 4.99) +
+            cart.reduce((total, item) => total + item.price * item.quantity, 0) * 0.2,
+          customer_email: shippingInfo.email,
+          customer_phone: shippingInfo.phone,
+          notes: "",
+        };
 
-      // Créer la commande
-      const orderResponse = await createOrder(orderData);
+        const orderResult = await createOrder(orderData);
 
-      if (!orderResponse || !orderResponse.id) {
-        toast({
-          title: "Erreur de commande",
-          description: "Impossible de créer la commande. Veuillez réessayer.",
-          variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
-      }
-      
-      // Traiter le paiement
-      const paymentData = {
-        order_id: orderResponse.id,
-        payment_method: paymentInfo.paymentMethod,
-        amount: cart.reduce((total, item) => total + (item.price * item.quantity), 0)
-      };
-
-      if (paymentInfo.paymentMethod === "card") {
-        const [expiryMonth, expiryYear] = (paymentInfo.expiry || "01/25").split("/");
-        paymentData.card_number = paymentInfo.cardNumber;
-        paymentData.expiry_month = expiryMonth;
-        paymentData.expiry_year = expiryYear.length === 2 ? `20${expiryYear}` : expiryYear;
-        paymentData.cvc = paymentInfo.cvv;
-      } else if (paymentInfo.paymentMethod === "mtn") {
-        paymentData.phone_number = paymentInfo.phoneNumber;
-      }
-
-      try {
-        const paymentResponse = await processPayment(paymentData);
-        
-        if (paymentResponse && paymentResponse.success) {
-          // Vider le panier
+        if (orderResult.id) {
+          // Vider le panier et rediriger vers la page de confirmation
           clearCart();
-          
           toast({
             title: "Commande réussie",
-            description: `Votre commande #${orderResponse.id} a été créée et payée avec succès.`,
+            description: "Votre commande a été traitée avec succès.",
           });
-          
-          router.push(`/orders/${orderResponse.id}`);
+          router.push(`/order-confirmation/${orderResult.id}`);
         } else {
           toast({
-            title: "Erreur de paiement",
-            description: paymentResponse?.message || "Le paiement a échoué. Veuillez réessayer.",
+            title: "Erreur",
+            description: "Erreur lors de la création de la commande.",
             variant: "destructive",
           });
         }
-      } catch (paymentError) {
-        const errorMessage = paymentError instanceof AxiosError && paymentError.response?.data?.message
-          ? paymentError.response.data.message
-          : "Le paiement a rencontré un problème, mais la commande a été créée.";
-          
+      } else {
         toast({
           title: "Erreur de paiement",
-          description: errorMessage,
+          description: paymentResult.error || "Une erreur est survenue lors du traitement du paiement.",
           variant: "destructive",
         });
       }
-
-    } catch (error: unknown) {
+    } catch (error) {
       const errorMessage = error instanceof AxiosError && error.response?.data?.message
         ? error.response.data.message
-        : "Une erreur s'est produite lors de la création de la commande.";
+        : "Une erreur est survenue lors du traitement de la commande.";
       
       toast({
-        title: "Erreur lors de la commande",
+        title: "Erreur",
         description: errorMessage,
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
+      console.error("Erreur lors du traitement de la commande:", error);
     }
-  };
+  } else {
+    toast({
+      title: "Erreur de paiement",
+      description: paymentResult.error || "Une erreur est survenue lors du traitement du paiement.",
+      variant: "destructive",
+    });
+  }
+} catch (error) {
+  const errorMessage = error instanceof AxiosError && error.response?.data?.message
+    ? error.response.data.message
+    : "Une erreur est survenue lors du traitement de la commande.";
+  
+  toast({
+    title: "Erreur",
+    description: errorMessage,
+    variant: "destructive",
+  });
+  console.error("Erreur lors du traitement de la commande:", error);
+} finally {
+  setIsLoading(false);
+}
+};
 
-  const handleContinueToPayment = () => {
-    if (validateShipping()) {
-      setStep("payment");
-      toast({
-        title: "Informations de livraison validées",
-        description: "Veuillez maintenant compléter les informations de paiement.",
-      });
-    }
-  };
+const handleContinueToReview = () => {
+if (validatePayment()) {
+  setStep("review");
+  toast({
+    title: "Informations de paiement validées",
+    description: "Veuillez vérifier votre commande avant de la finaliser.",
+  });
+}
+};
 
-  const handleContinueToReview = () => {
-    if (validatePayment()) {
-      setStep("review");
-      toast({
-        title: "Informations de paiement validées",
-        description: "Veuillez vérifier votre commande avant de la finaliser.",
-      });
-    }
-  };
+return (
+<div className="container px-4 py-8">
+  <div className="flex items-center justify-between mb-8">
+    <h1 className="text-3xl font-bold">Checkout</h1>
+    <Link href="/cart" className="text-sm underline">
+      Retour au panier
+    </Link>
+  </div>
 
-  return (
-    <div className="container px-4 py-8">
-      <div className="flex items-center justify-between mb-8">
+  <div className="flex flex-col lg:flex-row gap-8">
+    <div className="w-full lg:w-2/3">
+      <div className="flex items-center mb-8">
+        <div
+          className={`flex items-center justify-center w-8 h-8 rounded-full ${
+            step === "shipping" || step === "payment" || step === "review"
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground"
+          }`}
+        >
+          1
+        </div>
+        <div className="h-px flex-1 mx-2 bg-border" />
+        <div
+          className={`flex items-center justify-center w-8 h-8 rounded-full ${
+            step === "payment" || step === "review"
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground"
+          }`}
+        >
+          2
+        </div>
+        <div className="h-px flex-1 mx-2 bg-border" />
+        <div
+          className={`flex items-center justify-center w-8 h-8 rounded-full ${
+            step === "review" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+          }`}
+        >
+          3
+        </div>
         <h1 className="text-3xl font-bold">Checkout</h1>
         <Link href="/cart" className="text-sm underline">
           Retour au panier

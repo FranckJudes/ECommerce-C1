@@ -44,7 +44,7 @@ export default function CartItem({ item }: CartItemProps) {
     <div className="flex flex-col sm:flex-row gap-4 py-4">
       <div className="w-full sm:w-32 h-32 bg-muted rounded-md overflow-hidden">
         <Image
-          src={item.image || "/placeholder.svg"}
+          src={item.image && !item.image.startsWith('/') ? item.image : item.image && item.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${item.image}` : "/placeholder.svg"}
           alt={item.name}
           width={150}
           height={150}

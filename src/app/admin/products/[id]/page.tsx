@@ -57,7 +57,7 @@ interface FormData {
   stock: number;
   category_id: number;
   brand_id?: number;
-  image: string;
+  image: string | File | null;
   featured: boolean;
   coming_soon: boolean;
 }
@@ -187,34 +187,51 @@ export default function EditProductPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     const errors = validateForm(formData);
-    if (Object.keys(errors).length > 0) {
-      setValidationErrors(errors);
-      return;
-    }
+    setValidationErrors(errors);
     
-    setSaving(true);
-    try {
-      console.log("Données du formulaire:", formData);
-      const updatedProduct = await updateProduct(id, formData);
-      setProduct(updatedProduct);
-      toast({
-        title: "Succès",
-        description: "Produit mis à jour avec succès.",
-      });
-    } catch (error: unknown) {
-      console.error("Erreur lors de la mise à jour du produit:", error);
-      const errorMessage = error instanceof AxiosError && error.response?.data?.message
-        ? error.response.data.message
-        : "Échec de la mise à jour du produit";
-      toast({
-        title: "Erreur",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
+    if (Object.keys(errors).length === 0) {
+      setSaving(true);
+      try {
+        // Create FormData object for file upload
+        const formDataObj = new FormData();
+        formDataObj.append('name', formData.name);
+        formDataObj.append('description', formData.description);
+        formDataObj.append('price', formData.price.toString());
+        formDataObj.append('stock', formData.stock.toString());
+        formDataObj.append('category_id', formData.category_id.toString());
+        
+        if (formData.brand_id) {
+          formDataObj.append('brand_id', formData.brand_id.toString());
+        }
+        
+        formDataObj.append('featured', formData.featured ? '1' : '0');
+        formDataObj.append('coming_soon', formData.coming_soon ? '1' : '0');
+        
+        // Append image file if it exists and is a File object
+        if (formData.image instanceof File) {
+          formDataObj.append('image', formData.image);
+        }
+        
+        // @ts-ignore - FormData is handled in the updateProduct function
+        const updatedProduct = await updateProduct(id, formDataObj);
+        setProduct(updatedProduct);
+        toast({
+          title: "Succès",
+          description: "Produit mis à jour avec succès",
+        });
+      } catch (error: unknown) {
+        const errorMessage = error instanceof AxiosError && error.response?.data?.message
+          ? error.response.data.message
+          : "Impossible de mettre à jour le produit";
+        toast({
+          title: "Erreur",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
@@ -464,19 +481,40 @@ export default function EditProductPage() {
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    URL de l&apos;image
-                  </label>
-                  <input
-                    type="text"
-                    className="custom-input"
-                    placeholder="https://exemple.com/image.jpg"
-                    value={formData.image}
-                    onChange={(e) => handleInputChange("image", e.target.value)}
-                  />
-                  {validationErrors.image && (
-                    <div className="error-text">{validationErrors.image}</div>
-                  )}
+                  <div className="form-group">
+                    <label htmlFor="image" className="form-label">
+                      Image du produit
+                    </label>
+                    {product?.image && (
+                      <div className="mb-2">
+                        <p className="text-sm text-gray-500 mb-1">Image actuelle:</p>
+                        <div className="relative w-32 h-32 overflow-hidden rounded-md border border-gray-200">
+                          <Image
+                            src={product.image && !product.image.startsWith('/') ? product.image : product.image && product.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${product.image}` : "/placeholder.svg"}
+                            alt={product.name}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      id="image"
+                      name="image"
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files.length > 0) {
+                          handleInputChange("image", e.target.files[0]);
+                        }
+                      }}
+                      className="form-input"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Formats acceptés: JPG, PNG, GIF (max 2MB)</p>
+                    {validationErrors.image && (
+                      <p className="form-error">{validationErrors.image}</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -597,7 +635,7 @@ export default function EditProductPage() {
               <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100">
                 {product.image ? (
                   <Image
-                    src={product.image}
+                    src={product.image && !product.image.startsWith('/') ? product.image : product.image && product.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${product.image}` : "/placeholder.svg"}
                     alt={product.name}
                     fill
                     className="object-cover"

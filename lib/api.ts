@@ -1,5 +1,6 @@
 // lib/api.ts
 import axios, { AxiosInstance, AxiosResponse } from "axios";
+import { ReactNode } from "react";
 
 const api: AxiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
@@ -71,6 +72,9 @@ export interface SavedItem {
 
 // Interface pour les méthodes de paiement
 export interface PaymentMethod {
+  expiry: ReactNode;
+  last4: ReactNode;
+  card_type: string;
   id: number;
   type: string;
   card_number?: string;
@@ -99,6 +103,8 @@ export interface Address {
 
 // Interface pour les marques (utilisée par brands/page.tsx)
 export interface Brand {
+  data: unknown;
+  image: string;
   id: number;
   name: string;
   slug: string;
@@ -417,15 +423,13 @@ export const createBrand = async (data: {
 };
 
 export const updateBrand = async (
-  id: number,
-  data: {
-    name?: string;
-    description?: string;
-    logo?: File;
-    is_featured?: boolean;
-    status?: string;
-  }
-) => {
+id: number, data: {
+  name?: string;
+  description?: string;
+  logo?: File;
+  is_featured?: boolean;
+  status?: string;
+}) => {
   const formData = new FormData();
   Object.entries(data).forEach(([key, value]) => {
     if (value !== undefined) {

@@ -6,15 +6,7 @@ import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "../../hooks/use-toast";
-import { getBrands } from "../../../lib/api";
-
-interface Brand {
-  id: string;
-  name: string;
-  image: string;
-  product_count: number;
-  description: string;
-}
+import { getBrands, Brand } from "../../../lib/api";
 
 export default function BrandsPage() {
   const [brands, setBrands] = useState<Brand[]>([]);

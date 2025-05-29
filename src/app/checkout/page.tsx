@@ -15,7 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "../../../lib/auth-context";
 import { createOrder, processPayment } from "../../../lib/api";
-import { AxiosError } from "axios";
+//import { AxiosError } from "axios";
 import CheckoutSummary from "@/components/checkout-summary";
 
 interface CartItem {
@@ -268,9 +268,20 @@ export default function CheckoutPage() {
       router.push(`/orders/${orderResponse.id}`);
     } catch (error: unknown) {
       console.error("Erreur complète:", error);
+      let errorMessage = "Une erreur s'est produite lors de la création de la commande.";
+      if (typeof error === "object" && error !== null) {
+        if ("response" in error && typeof (error as { response?: { data?: { message?: string } } }).response === "object") {
+          errorMessage =
+            (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
+            (error as unknown as Error).message ||
+            errorMessage;
+        } else if ("message" in error && typeof (error as { message?: string }).message === "string") {
+          errorMessage = (error as { message?: string }).message || errorMessage;
+        }
+      }
       toast({
         title: "Erreur lors de la commande",
-        description: (error as any)?.response?.data?.message || (error as Error)?.message || "Une erreur s'est produite lors de la création de la commande.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

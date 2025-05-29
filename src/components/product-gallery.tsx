@@ -1,20 +1,20 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Image from "next/image"
-import { cn } from "@/lib/utils"
+import { useState } from "react";
+import Image from "next/image";
+import { cn } from "@/lib/utils";
 
-export default function ProductGallery({  }: { productId: string }) {//productId
-  // In a real app, these would be fetched from an API based on the productId
+export default function ProductGallery() {
+  // In a real app, images would be fetched from an API
   const images = [
     "/placeholder.svg?height=600&width=600",
     "/placeholder.svg?height=600&width=600",
     "/placeholder.svg?height=600&width=600",
     "/placeholder.svg?height=600&width=600",
     "/placeholder.svg?height=600&width=600",
-  ]
+  ];
 
-  const [selectedImage, setSelectedImage] = useState(0)
+  const [selectedImage, setSelectedImage] = useState(0);
 
   return (
     <div className="flex flex-col gap-4">
@@ -48,5 +48,5 @@ export default function ProductGallery({  }: { productId: string }) {//productId
         ))}
       </div>
     </div>
-  )
+  );
 }

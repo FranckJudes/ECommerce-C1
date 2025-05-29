@@ -18,7 +18,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  //DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,15 +35,15 @@ import { AxiosError } from "axios";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormProvider,
-} from "@/components/ui/form";
+// import {
+//   Form,
+//   FormControl,
+//   FormField,
+//   FormItem,
+//   FormLabel,
+//   FormMessage,
+//   FormProvider,
+// } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -325,7 +325,7 @@ export default function AdminProductsPage() {
                 <Label htmlFor="brand_id">Marque</Label>
                 <Select 
                   onValueChange={(value) => form.setValue("brand_id", parseInt(value), { shouldValidate: true })} 
-                  value={form.getValues("brand_id") ? form.getValues("brand_id").toString() : ""}
+                  value={form.getValues("brand_id") !== undefined && form.getValues("brand_id") !== null ? form.getValues("brand_id")!.toString() : ""}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionner une marque" />

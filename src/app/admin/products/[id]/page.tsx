@@ -5,10 +5,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import {
   getProduct,
@@ -18,28 +14,6 @@ import {
   deleteProduct,
 } from "../../../../../lib/api";
 import { AxiosError } from "axios";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Category {
   id: number;
@@ -76,19 +50,27 @@ interface Product {
   updated_at: string;
 }
 
-const productSchema = z.object({
-  name: z.string().min(1, "Le nom est requis"),
-  description: z.string().min(1, "La description est requise"),
-  price: z.coerce.number().min(0, "Le prix doit être positif"),
-  stock: z.coerce.number().int().min(0, "Le stock doit être un entier positif"),
-  category_id: z.coerce.number().int().min(1, "La catégorie est requise"),
-  brand_id: z.coerce.number().int().optional(),
-  image: z.string().optional(),
-  featured: z.boolean().optional(),
-  coming_soon: z.boolean().optional(),
-});
+interface FormData {
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  category_id: number;
+  brand_id?: number;
+  image: string;
+  featured: boolean;
+  coming_soon: boolean;
+}
 
-type ProductFormData = z.infer<typeof productSchema>;
+interface ValidationErrors {
+  name?: string;
+  description?: string;
+  price?: string;
+  stock?: string;
+  category_id?: string;
+  brand_id?: string;
+  image?: string;
+}
 
 export default function EditProductPage() {
   const [product, setProduct] = useState<Product | null>(null);
@@ -98,23 +80,23 @@ export default function EditProductPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("details");
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  
   const router = useRouter();
   const params = useParams();
   const id = parseInt(params.id as string);
 
-  const form = useForm<ProductFormData>({
-    resolver: zodResolver(productSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      price: 0,
-      stock: 0,
-      category_id: 0,
-      brand_id: undefined,
-      image: "",
-      featured: false,
-      coming_soon: false,
-    },
+  // État du formulaire
+  const [formData, setFormData] = useState<FormData>({
+    name: "",
+    description: "",
+    price: 0,
+    stock: 0,
+    category_id: 0,
+    brand_id: undefined,
+    image: "",
+    featured: false,
+    coming_soon: false,
   });
 
   useEffect(() => {
@@ -128,7 +110,7 @@ export default function EditProductPage() {
         ]);
         
         setProduct(productData);
-        form.reset({
+        setFormData({
           name: productData.name,
           description: productData.description,
           price: productData.price,
@@ -158,13 +140,64 @@ export default function EditProductPage() {
     };
     
     fetchData();
-  }, [id, form]);
+  }, [id]);
 
-  const handleUpdateProduct = async (data: ProductFormData) => {
+  // Fonction de validation
+  const validateForm = (data: FormData): ValidationErrors => {
+    const errors: ValidationErrors = {};
+    
+    if (!data.name.trim()) {
+      errors.name = "Le nom est requis";
+    }
+    
+    if (!data.description.trim()) {
+      errors.description = "La description est requise";
+    }
+    
+    if (data.price < 0) {
+      errors.price = "Le prix doit être positif";
+    }
+    
+    if (data.stock < 0) {
+      errors.stock = "Le stock doit être positif";
+    }
+    
+    if (data.category_id < 1) {
+      errors.category_id = "La catégorie est requise";
+    }
+    
+    return errors;
+  };
+
+  // Gestion des changements de formulaire
+  const handleInputChange = (field: keyof FormData, value: unknown) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    // Effacer l'erreur de validation pour ce champ
+    if (field in validationErrors) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [field as keyof ValidationErrors]: undefined
+      }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const errors = validateForm(formData);
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+    
     setSaving(true);
     try {
-      console.log("Données du formulaire:", data);
-      const updatedProduct = await updateProduct(id, data);
+      console.log("Données du formulaire:", formData);
+      const updatedProduct = await updateProduct(id, formData);
       setProduct(updatedProduct);
       toast({
         title: "Succès",
@@ -214,11 +247,11 @@ export default function EditProductPage() {
     return (
       <div className="container px-4 py-8">
         <div className="flex justify-between items-center mb-6">
-          <Skeleton className="h-8 w-1/3" />
-          <Skeleton className="h-10 w-32" />
+          <div className="h-8 w-1/3 bg-gray-200 animate-pulse rounded"></div>
+          <div className="h-10 w-32 bg-gray-200 animate-pulse rounded"></div>
         </div>
         <div className="grid gap-6">
-          <Skeleton className="h-[400px] w-full" />
+          <div className="h-96 w-full bg-gray-200 animate-pulse rounded"></div>
         </div>
       </div>
     );
@@ -229,9 +262,12 @@ export default function EditProductPage() {
       <div className="container px-4 py-8">
         <div className="text-center py-8">
           <h2 className="text-xl font-bold mb-4">Erreur : {error}</h2>
-          <Button asChild>
-            <Link href="/admin/products">Retour à la liste des produits</Link>
-          </Button>
+          <Link 
+            href="/admin/products"
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Retour à la liste des produits
+          </Link>
         </div>
       </div>
     );
@@ -242,9 +278,12 @@ export default function EditProductPage() {
       <div className="container px-4 py-8">
         <div className="text-center py-8">
           <h2 className="text-xl font-bold mb-4">Produit non trouvé</h2>
-          <Button asChild>
-            <Link href="/admin/products">Retour à la liste des produits</Link>
-          </Button>
+          <Link 
+            href="/admin/products"
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Retour à la liste des produits
+          </Link>
         </div>
       </div>
     );
@@ -252,300 +291,374 @@ export default function EditProductPage() {
 
   return (
     <div className="container px-4 py-8">
+      <style jsx>{`
+        .custom-input {
+          width: 100%;
+          padding: 0.5rem 0.75rem;
+          border: 1px solid #d1d5db;
+          border-radius: 0.375rem;
+          font-size: 0.875rem;
+          background-color: white;
+        }
+        .custom-input:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .custom-textarea {
+          width: 100%;
+          padding: 0.5rem 0.75rem;
+          border: 1px solid #d1d5db;
+          border-radius: 0.375rem;
+          font-size: 0.875rem;
+          background-color: white;
+          resize: vertical;
+        }
+        .custom-textarea:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .custom-select {
+          width: 100%;
+          padding: 0.5rem 0.75rem;
+          border: 1px solid #d1d5db;
+          border-radius: 0.375rem;
+          font-size: 0.875rem;
+          background-color: white;
+        }
+        .custom-select:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .error-text {
+          color: #ef4444;
+          font-size: 0.75rem;
+          margin-top: 0.25rem;
+        }
+        .tab-button {
+          padding: 0.5rem 1rem;
+          border: 1px solid #d1d5db;
+          background-color: white;
+          border-radius: 0.375rem 0.375rem 0 0;
+          cursor: pointer;
+        }
+        .tab-button.active {
+          background-color: #3b82f6;
+          color: white;
+          border-color: #3b82f6;
+        }
+        .card {
+          background-color: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 0.5rem;
+          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+          padding: 1.5rem 1.5rem 0 1.5rem;
+        }
+        .card-content {
+          padding: 1.5rem;
+        }
+        .card-footer {
+          padding: 0 1.5rem 1.5rem 1.5rem;
+        }
+      `}</style>
+
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Modifier le produit</h1>
         <div className="flex gap-2">
-          <Button variant="destructive" onClick={handleDeleteProduct}>
+          <button
+            onClick={handleDeleteProduct}
+            className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+          >
             Supprimer
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/admin/products">Retour à la liste</Link>
-          </Button>
+          </button>
+          <Link 
+            href="/admin/products"
+            className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Retour à la liste
+          </Link>
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="details">Détails du produit</TabsTrigger>
-          <TabsTrigger value="preview">Aperçu</TabsTrigger>
-        </TabsList>
+      <div className="mb-6">
+        <div className="flex border-b">
+          <button
+            className={`tab-button ${activeTab === "details" ? "active" : ""}`}
+            onClick={() => setActiveTab("details")}
+          >
+            Détails du produit
+          </button>
+          <button
+            className={`tab-button ${activeTab === "preview" ? "active" : ""}`}
+            onClick={() => setActiveTab("preview")}
+          >
+            Aperçu
+          </button>
+        </div>
+      </div>
 
-        <TabsContent value="details">
-          <Card>
-            <CardHeader>
-              <CardTitle>Informations du produit</CardTitle>
-              <CardDescription>
-                ID: {product.id} | Créé le: {new Date(product.created_at).toLocaleDateString()}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleUpdateProduct)} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nom</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Nom du produit" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="price"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Prix</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              placeholder="0.00"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="stock"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Stock</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min="0"
-                              placeholder="0"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="image"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>URL de l&apos;image</FormLabel>
-                          <FormControl>
-                            <Input placeholder="https://exemple.com/image.jpg" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="category_id"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Catégorie</FormLabel>
-                          <Select
-                            onValueChange={(value) => field.onChange(parseInt(value))}
-                            value={field.value ? field.value.toString() : ""}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Sélectionner une catégorie" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {categories.map((category) => (
-                                <SelectItem key={category.id} value={category.id.toString()}>
-                                  {category.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="brand_id"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Marque</FormLabel>
-                          <Select
-                            onValueChange={(value) => field.onChange(parseInt(value))}
-                            value={field.value ? field.value.toString() : ""}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Sélectionner une marque" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {brands.map((brand) => (
-                                <SelectItem key={brand.id} value={brand.id.toString()}>
-                                  {brand.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Description du produit" 
-                            {...field} 
-                            rows={5}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+      {activeTab === "details" && (
+        <div className="card">
+          <div className="card-header">
+            <h2 className="text-xl font-bold">Informations du produit</h2>
+            <p className="text-gray-600">
+              ID: {product.id} | Créé le: {new Date(product.created_at).toLocaleDateString()}
+            </p>
+          </div>
+          <div className="card-content">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nom
+                  </label>
+                  <input
+                    type="text"
+                    className="custom-input"
+                    placeholder="Nom du produit"
+                    value={formData.name}
+                    onChange={(e) => handleInputChange("name", e.target.value)}
                   />
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="featured"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel>Mis en avant</FormLabel>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="coming_soon"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel>Bientôt disponible</FormLabel>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="flex justify-end">
-                    <Button type="submit" disabled={saving}>
-                      {saving ? "Enregistrement..." : "Enregistrer les modifications"}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="preview">
-          <Card>
-            <CardHeader>
-              <CardTitle>Aperçu du produit</CardTitle>
-              <CardDescription>
-                Voici comment le produit apparaîtra sur le site
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100">
-                  {product.image ? (
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-gray-400">
-                      Aucune image
-                    </div>
-                  )}
-                  {product.coming_soon && (
-                    <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 text-xs font-medium rounded">
-                      Bientôt disponible
-                    </div>
-                  )}
-                  {product.featured && (
-                    <div className="absolute top-2 left-2 bg-yellow-500 text-white px-2 py-1 text-xs font-medium rounded">
-                      Mis en avant
-                    </div>
+                  {validationErrors.name && (
+                    <div className="error-text">{validationErrors.name}</div>
                   )}
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold">{product.name}</h2>
-                  <p className="text-xl font-semibold mt-2">{product.price} €</p>
-                  <div className="mt-2 flex items-center space-x-2">
-                    <span className={`inline-block w-3 h-3 rounded-full ${product.stock > 0 ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                    <span>{product.stock > 0 ? `En stock (${product.stock})` : 'Épuisé'}</span>
-                  </div>
-                  <div className="mt-4">
-                    <h3 className="font-medium">Catégorie:</h3>
-                    <p>{categories.find(c => c.id === product.category_id)?.name || "Non catégorisé"}</p>
-                  </div>
-                  {product.brand_id && (
-                    <div className="mt-2">
-                      <h3 className="font-medium">Marque:</h3>
-                      <p>{brands.find(b => b.id === product.brand_id)?.name || "Non spécifiée"}</p>
-                    </div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Prix
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="custom-input"
+                    placeholder="0.00"
+                    value={formData.price}
+                    onChange={(e) => handleInputChange("price", parseFloat(e.target.value) || 0)}
+                  />
+                  {validationErrors.price && (
+                    <div className="error-text">{validationErrors.price}</div>
                   )}
-                  <div className="mt-4">
-                    <h3 className="font-medium">Description:</h3>
-                    <p className="mt-2 text-gray-600 whitespace-pre-line">{product.description}</p>
-                  </div>
                 </div>
               </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={() => setActiveTab("details")}>
-                Retour à l&apos;édition
-              </Button>
-              <Button asChild>
-                <Link href={`/products/${product.id}`} target="_blank">
-                  Voir sur le site
-                </Link>
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-      </Tabs>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Stock
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="custom-input"
+                    placeholder="0"
+                    value={formData.stock}
+                    onChange={(e) => handleInputChange("stock", parseInt(e.target.value) || 0)}
+                  />
+                  {validationErrors.stock && (
+                    <div className="error-text">{validationErrors.stock}</div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    URL de l&apos;image
+                  </label>
+                  <input
+                    type="text"
+                    className="custom-input"
+                    placeholder="https://exemple.com/image.jpg"
+                    value={formData.image}
+                    onChange={(e) => handleInputChange("image", e.target.value)}
+                  />
+                  {validationErrors.image && (
+                    <div className="error-text">{validationErrors.image}</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Catégorie
+                  </label>
+                  <select
+                    className="custom-select"
+                    value={formData.category_id}
+                    onChange={(e) => handleInputChange("category_id", parseInt(e.target.value))}
+                  >
+                    <option value="">Sélectionner une catégorie</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                  {validationErrors.category_id && (
+                    <div className="error-text">{validationErrors.category_id}</div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Marque
+                  </label>
+                  <select
+                    className="custom-select"
+                    value={formData.brand_id || ""}
+                    onChange={(e) => handleInputChange("brand_id", e.target.value ? parseInt(e.target.value) : undefined)}
+                  >
+                    <option value="">Sélectionner une marque</option>
+                    {brands.map((brand) => (
+                      <option key={brand.id} value={brand.id}>
+                        {brand.name}
+                      </option>
+                    ))}
+                  </select>
+                  {validationErrors.brand_id && (
+                    <div className="error-text">{validationErrors.brand_id}</div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  className="custom-textarea"
+                  placeholder="Description du produit"
+                  rows={5}
+                  value={formData.description}
+                  onChange={(e) => handleInputChange("description", e.target.value)}
+                />
+                {validationErrors.description && (
+                  <div className="error-text">{validationErrors.description}</div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="featured"
+                    className="mr-2"
+                    checked={formData.featured}
+                    onChange={(e) => handleInputChange("featured", e.target.checked)}
+                  />
+                  <label htmlFor="featured" className="text-sm font-medium text-gray-700">
+                    Mis en avant
+                  </label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="coming_soon"
+                    className="mr-2"
+                    checked={formData.coming_soon}
+                    onChange={(e) => handleInputChange("coming_soon", e.target.checked)}
+                  />
+                  <label htmlFor="coming_soon" className="text-sm font-medium text-gray-700">
+                    Bientôt disponible
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className={`${
+                    saving 
+                      ? "bg-gray-400 cursor-not-allowed" 
+                      : "bg-blue-500 hover:bg-blue-700"
+                  } text-white font-bold py-2 px-4 rounded`}
+                >
+                  {saving ? "Enregistrement..." : "Enregistrer les modifications"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "preview" && (
+        <div className="card">
+          <div className="card-header">
+            <h2 className="text-xl font-bold">Aperçu du produit</h2>
+            <p className="text-gray-600">
+              Voici comment le produit apparaîtra sur le site
+            </p>
+          </div>
+          <div className="card-content">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100">
+                {product.image ? (
+                  <Image
+                    src={product.image}
+                    alt={product.name}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-400">
+                    Aucune image
+                  </div>
+                )}
+                {product.coming_soon && (
+                  <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 text-xs font-medium rounded">
+                    Bientôt disponible
+                  </div>
+                )}
+                {product.featured && (
+                  <div className="absolute top-2 left-2 bg-yellow-500 text-white px-2 py-1 text-xs font-medium rounded">
+                    Mis en avant
+                  </div>
+                )}
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">{product.name}</h2>
+                <p className="text-xl font-semibold mt-2">{product.price} €</p>
+                <div className="mt-2 flex items-center space-x-2">
+                  <span className={`inline-block w-3 h-3 rounded-full ${product.stock > 0 ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                  <span>{product.stock > 0 ? `En stock (${product.stock})` : 'Épuisé'}</span>
+                </div>
+                <div className="mt-4">
+                  <h3 className="font-medium">Catégorie:</h3>
+                  <p>{categories.find(c => c.id === product.category_id)?.name || "Non catégorisé"}</p>
+                </div>
+                {product.brand_id && (
+                  <div className="mt-2">
+                    <h3 className="font-medium">Marque:</h3>
+                    <p>{brands.find(b => b.id === product.brand_id)?.name || "Non spécifiée"}</p>
+                  </div>
+                )}
+                <div className="mt-4">
+                  <h3 className="font-medium">Description:</h3>
+                  <p className="mt-2 text-gray-600 whitespace-pre-line">{product.description}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="card-footer flex justify-between">
+            <button
+              onClick={() => setActiveTab("details")}
+              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+            >
+              Retour à l&apos;édition
+            </button>
+            <Link
+              href={`/products/${product.id}`}
+              target="_blank"
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              Voir sur le site
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

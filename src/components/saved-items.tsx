@@ -10,7 +10,21 @@ import { toast } from "@/hooks/use-toast";
 import { AxiosError } from "axios";
 
 export default function SavedItems() {
-  const [savedItems, setSavedItems] = useState<any[]>([]);
+  type SavedItem = {
+    id: number;
+    product_id: number;
+    product?: {
+      image?: string;
+      name?: string;
+      price?: number;
+      stock?: number;
+      brand?: {
+        name?: string;
+      };
+    };
+  };
+  
+    const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -109,8 +123,8 @@ export default function SavedItems() {
                 <p className="font-bold mt-1">{item.product?.price} €</p>
 
                 <div className="w-full mt-4">
-                  <Button className="w-full" disabled={item.product?.stock <= 0}>
-                    {item.product?.stock > 0 ? "Ajouter au panier" : "Rupture de stock"}
+                  <Button className="w-full" disabled={(item.product?.stock ?? 0) <= 0}>
+                    {(item.product?.stock ?? 0) > 0 ? "Ajouter au panier" : "Rupture de stock"}
                   </Button>
                 </div>
               </CardFooter>
@@ -134,7 +148,7 @@ export default function SavedItems() {
             </svg>
           </div>
           <h2 className="text-2xl font-bold mb-2">No saved items</h2>
-          <p className="text-muted-foreground mb-6">Vous n'avez pas encore sauvegardé d'articles.</p>
+          <p className="text-muted-foreground mb-6">Vous n&pos;avez pas encore sauvegardé d&pos;articles.</p>
           <Button asChild>
             <Link href="/products">Start Shopping</Link>
           </Button>

@@ -16,12 +16,13 @@ import { AxiosError } from "axios";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 const brandFormSchema = z.object({
   name: z.string().min(1, "Le nom de la marque est requis"),
   description: z.string().optional(),
-  logo: z.instanceof(File).optional(),
-  is_featured: z.boolean().optional()
+  logo: z.any().optional(), // Remplacé z.instanceof(File) par z.any() pour éviter l'erreur serveur
+  is_featured: z.boolean().optional(),
 });
 
 type BrandFormValues = z.infer<typeof brandFormSchema>;
@@ -36,8 +37,8 @@ export default function CreateBrandPage() {
     defaultValues: {
       name: "",
       description: "",
-      is_featured: false
-    }
+      is_featured: false,
+    },
   });
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,16 +56,24 @@ export default function CreateBrandPage() {
   const onSubmit = async (data: BrandFormValues) => {
     setIsSubmitting(true);
     try {
-      await createBrand(data);
+      const payload = {
+        name: data.name,
+        description: data.description,
+        logo: data.logo instanceof File ? data.logo : undefined,
+        is_featured: data.is_featured,
+      };
+
+      await createBrand(payload);
       toast({
         title: "Succès",
         description: "Marque créée avec succès",
       });
       router.push("/account?tab=brands");
     } catch (error: unknown) {
-      const errorMessage = error instanceof AxiosError && error.response?.data?.message
-        ? error.response.data.message
-        : "Impossible de créer la marque";
+      const errorMessage =
+        error instanceof AxiosError && error.response?.data?.message
+          ? error.response.data.message
+          : "Impossible de créer la marque";
       toast({
         title: "Erreur",
         description: errorMessage,
@@ -122,7 +131,13 @@ export default function CreateBrandPage() {
               <div className="flex flex-col gap-4">
                 {logoPreview && (
                   <div className="relative w-32 h-32 border rounded-md overflow-hidden">
-                    <img src={logoPreview} alt="Aperçu du logo" className="w-full h-full object-contain" />
+                    <Image
+                      src={logoPreview}
+                      alt="Aperçu du logo"
+                      width={128}
+                      height={128}
+                      className="object-contain"
+                    />
                   </div>
                 )}
                 <Input
@@ -137,7 +152,8 @@ export default function CreateBrandPage() {
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="is_featured"
-                {...form.register("is_featured")}
+                checked={form.watch("is_featured")}
+                onCheckedChange={(checked) => form.setValue("is_featured", !!checked)}
               />
               <Label htmlFor="is_featured">Demander la mise en avant de cette marque</Label>
             </div>

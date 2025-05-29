@@ -38,10 +38,22 @@ type AddressFormValues = z.infer<typeof addressFormSchema>;
 
 export default function AddressBook() {
   const [showAddAddress, setShowAddAddress] = useState(false)
-  const [addresses, setAddresses] = useState<any[]>([])
+  type Address = {
+    id: string;
+    name: string;
+    street: string;
+    city: string;
+    state?: string;
+    zip: string;
+    country: string;
+    phone: string;
+    isDefault?: boolean;
+  };
+  
+    const [addresses, setAddresses] = useState<Address[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [editingAddress, setEditingAddress] = useState<any | null>(null)
+  const [editingAddress, setEditingAddress] = useState<Address | null>(null)
   const [showEditDialog, setShowEditDialog] = useState(false)
 
   const form = useForm<AddressFormValues>({
@@ -81,7 +93,32 @@ export default function AddressBook() {
       setLoading(true);
       try {
         const response = await getAddressBook();
-        setAddresses(response.data || []);
+        type ApiAddress = {
+          id: string;
+          first_name?: string;
+          last_name?: string;
+          address_line1: string;
+          address_line2?: string;
+          city: string;
+          state?: string;
+          postal_code: string;
+          country: string;
+          phone?: string;
+          is_default?: boolean;
+        };
+
+        const mappedAddresses = ((response.data || []) as unknown as ApiAddress[]).map((addr: ApiAddress) => ({
+          id: addr.id,
+          name: `${addr.first_name ?? ""} ${addr.last_name ?? ""}`.trim(),
+          street: addr.address_line1 + (addr.address_line2 ? `, ${addr.address_line2}` : ""),
+          city: addr.city,
+          state: addr.state,
+          zip: addr.postal_code,
+          country: addr.country,
+          phone: addr.phone ?? "",
+          isDefault: addr.is_default ?? false,
+        }));
+        setAddresses(mappedAddresses);
         setLoading(false);
       } catch (error: unknown) {
         const errorMessage = error instanceof AxiosError && error.response?.data?.message
@@ -151,7 +188,7 @@ export default function AddressBook() {
     }
   };
 
-  const handleEditAddress = (address: any) => {
+  const handleEditAddress = (address: Address) => {
     setEditingAddress(address);
     
     // Extraire le prénom et le nom
@@ -184,7 +221,7 @@ export default function AddressBook() {
     if (!editingAddress) return;
     
     try {
-      const response = await updateAddressBook({
+      await updateAddressBook({
         address_line1: data.street,
         address_line2: data.street2,
         city: data.city,
@@ -288,7 +325,7 @@ export default function AddressBook() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-semibold">Carnet d'adresses</h3>
+        <h3 className="text-xl font-semibold">Carnet d&apos;adresses</h3>
         <Dialog open={showAddAddress} onOpenChange={setShowAddAddress}>
           <DialogTrigger asChild>
             <Button>Ajouter une adresse</Button>
@@ -412,7 +449,7 @@ export default function AddressBook() {
                 <Button type="button" variant="outline" onClick={() => setShowAddAddress(false)}>
                   Annuler
                 </Button>
-                <Button type="submit">Ajouter l'adresse</Button>
+                <Button type="submit">Ajouter l&apos;adresse</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -488,7 +525,7 @@ export default function AddressBook() {
             </svg>
           </div>
           <h2 className="text-2xl font-bold mb-2">Aucune adresse</h2>
-          <p className="text-muted-foreground mb-6">Vous n'avez pas encore ajouté d'adresse.</p>
+          <p className="text-muted-foreground mb-6">Vous n&apos;avez pas encore ajouté d&apos;adresse.</p>
           <Button onClick={() => setShowAddAddress(true)}>Ajouter une adresse</Button>
         </div>
       )}
@@ -497,7 +534,7 @@ export default function AddressBook() {
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Modifier l'adresse</DialogTitle>
+            <DialogTitle>Modifier l&apos;adresse</DialogTitle>
             <DialogDescription>Modifiez les informations de votre adresse.</DialogDescription>
           </DialogHeader>
           <form onSubmit={editForm.handleSubmit(handleUpdateAddress)} className="space-y-4 py-4">

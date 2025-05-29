@@ -31,9 +31,12 @@ const paymentFormSchema = z.object({
 
 type PaymentFormValues = z.infer<typeof paymentFormSchema>;
 
+import type * as api from "../../lib/api";
+
 export default function PaymentMethods() {
   const [showAddCard, setShowAddCard] = useState(false)
-  const [paymentMethods, setPaymentMethods] = useState<any[]>([])
+  
+    const [paymentMethods, setPaymentMethods] = useState<api.PaymentMethod[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -192,7 +195,7 @@ export default function PaymentMethods() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="expiry">Date d'expiration</Label>
+                  <Label htmlFor="expiry">Date d&pos;expiration</Label>
                   <Input 
                     id="expiry" 
                     placeholder="MM/YY" 
@@ -324,7 +327,7 @@ export default function PaymentMethods() {
             </svg>
           </div>
           <h2 className="text-2xl font-bold mb-2">Aucune méthode de paiement</h2>
-          <p className="text-muted-foreground mb-6">Vous n'avez pas encore ajouté de méthode de paiement.</p>
+          <p className="text-muted-foreground mb-6">Vous n&pos;avez pas encore ajouté de méthode de paiement.</p>
           <Button onClick={() => setShowAddCard(true)}>Ajouter une méthode de paiement</Button>
         </div>
       )}

@@ -5,15 +5,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { getBrands, deleteBrand } from "../../lib/api";
+import { getBrands, deleteBrand, Brand } from "../../lib/api";
 import { toast } from "@/hooks/use-toast";
 import { AxiosError } from "axios";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Pencil, Trash2, Plus } from "lucide-react";
 
 export default function UserBrands() {
-  const [brands, setBrands] = useState<any[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [brandToDelete, setBrandToDelete] = useState<number | null>(null);
@@ -25,7 +25,9 @@ export default function UserBrands() {
       try {
         const response = await getBrands();
         // Filtrer uniquement les marques appartenant à l'utilisateur connecté
-        const userBrands = response.data.filter((brand: any) => brand.user_owned);
+        // Define a Brand type for better type safety
+        type Brand = { id: number; name: string; description?: string; logo?: string; is_featured?: boolean; user_owned?: boolean };
+        const userBrands = response.data.filter((brand: Brand) => brand.user_owned);
         setBrands(userBrands || []);
         setLoading(false);
       } catch (error: unknown) {
@@ -149,7 +151,7 @@ export default function UserBrands() {
             </svg>
           </div>
           <h2 className="text-2xl font-bold mb-2">Aucune marque</h2>
-          <p className="text-muted-foreground mb-6">Vous n'avez pas encore créé de marques.</p>
+          <p className="text-muted-foreground mb-6">Vous n&apos;avez pas encore créé de marques.</p>
           <Button asChild>
             <Link href="/account/brands/create">Créer une marque</Link>
           </Button>

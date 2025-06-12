@@ -1,4 +1,3 @@
-// lib/api.ts
 import axios, { AxiosInstance, AxiosResponse } from "axios";
 import { ReactNode } from "react";
 
@@ -9,6 +8,18 @@ const api: AxiosInstance = axios.create({
   },
   timeout: 10000,
 });
+
+// Intercepteur pour ajouter le token d'authentification
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("auth_token"); // Supposons que le token est stocké dans localStorage
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
@@ -275,11 +286,26 @@ export const createProduct = async (data: {
   stock: number;
   category_id: number;
   brand_id?: number;
-  image?: string;
+  image?: File;
   featured?: boolean;
   coming_soon?: boolean;
 }) => {
-  const response = await api.post<Product>("/products", data);
+  const formData = new FormData();
+  formData.append("name", data.name);
+  formData.append("description", data.description);
+  formData.append("price", data.price.toString());
+  formData.append("stock", data.stock.toString());
+  formData.append("category_id", data.category_id.toString());
+  if (data.brand_id) formData.append("brand_id", data.brand_id.toString());
+  if (data.image) formData.append("image", data.image);
+  formData.append("featured", data.featured ? "true" : "false");
+  formData.append("coming_soon", data.coming_soon ? "true" : "false");
+
+  const response = await api.post<Product>("/products", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
   return response.data;
 };
 
@@ -291,13 +317,28 @@ export const updateProduct = async (
     price?: number;
     stock?: number;
     category_id?: number;
-    brand_id?: number;
-    image?: string;
+    brand_id?: number | null;
+    image?: File | string;
     featured?: boolean;
     coming_soon?: boolean;
   }
 ) => {
-  const response = await api.put<Product>(`/products/${id}`, data);
+  const formData = new FormData();
+  if (data.name) formData.append("name", data.name);
+  if (data.description) formData.append("description", data.description);
+  if (data.price !== undefined) formData.append("price", data.price.toString());
+  if (data.stock !== undefined) formData.append("stock", data.stock.toString());
+  if (data.category_id) formData.append("category_id", data.category_id.toString());
+  if (data.brand_id !== undefined) formData.append("brand_id", data.brand_id?.toString() ?? "");
+  if (data.image) formData.append("image", data.image);
+  if (data.featured !== undefined) formData.append("featured", data.featured ? "true" : "false");
+  if (data.coming_soon !== undefined) formData.append("coming_soon", data.coming_soon ? "true" : "false");
+
+  const response = await api.put<Product>(`/products/${id}`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
   return response.data;
 };
 
@@ -661,6 +702,46 @@ export const getRelatedProducts = async (productId: string) => {
     [key: string]: unknown;
   }
   const response = await api.get<RelatedProductsResponse>(`/products/${productId}/related`);
+  return response.data;
+};
+
+
+// Commandes
+export interface Order {
+  id: number;
+  user_id: number;
+  total: number;
+  status: "pending" | "paid" | "processing" | "shipped" | "delivered" | "canceled";
+  shipping_address: string;
+  payment_method: string;
+  order_items: Array<{
+    product_id: number;
+    name: string;
+    quantity: number;
+    price: number;
+  }>;
+  created_at: string;
+  updated_at: string;
+}
+
+
+
+export const getAllOrders = async (params: {
+  page?: number;
+  per_page?: number;
+  status?: string;
+} = {}) => {
+  const response = await api.get<{ data: Order[] }>("/admin/orders", { params });
+  return response.data;
+};
+
+export const updateOrderStatus = async (
+  id: number,
+  data: {
+    status: "pending" | "paid" | "processing" | "shipped" | "delivered" | "canceled";
+  }
+) => {
+  const response = await api.put<Order>(`/admin/orders/${id}`, data);
   return response.data;
 };
 

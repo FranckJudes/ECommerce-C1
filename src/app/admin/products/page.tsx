@@ -18,7 +18,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  //DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,19 +32,11 @@ import {
 } from "../../../../lib/api";
 import { AxiosError } from "axios";
 import { z } from "zod";
-import { useForm } from "react-hook-form";
+//import { SubmitHandler, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-// import {
-//   Form,
-//   FormControl,
-//   FormField,
-//   FormItem,
-//   FormLabel,
-//   FormMessage,
-//   FormProvider,
-// } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useForm } from "react-hook-form";
 
 interface Product {
   id: number;
@@ -89,7 +80,9 @@ const productSchema = z.object({
   stock: z.coerce.number().int().min(0, "Le stock doit être un entier positif"),
   category_id: z.coerce.number().int().min(1, "La catégorie est requise"),
   brand_id: z.coerce.number().int().optional(),
-  image: z.string().optional(),
+  image: z
+    .instanceof(File)
+    .optional(),
   featured: z.boolean().optional(),
   coming_soon: z.boolean().optional(),
 });
@@ -115,7 +108,7 @@ export default function AdminProductsPage() {
       stock: 0,
       category_id: 0,
       brand_id: undefined,
-      image: "",
+      image: undefined,
       featured: false,
       coming_soon: false,
     },
@@ -184,9 +177,18 @@ export default function AdminProductsPage() {
         description: "Produit supprimé avec succès.",
       });
     } catch (error: unknown) {
-      const errorMessage = error instanceof AxiosError && error.response?.data?.message
-        ? error.response.data.message
-        : "Échec de la suppression du produit";
+      let errorMessage = "Échec de la suppression du produit";
+      if (error instanceof AxiosError) {
+        if (error.response?.status === 403) {
+          errorMessage = "Vous n'êtes pas autorisé à supprimer ce produit.";
+        } else if (error.response?.status === 404) {
+          errorMessage = "Produit non trouvé.";
+        } else if (error.response?.status === 409) {
+          errorMessage = "Ce produit est lié à des commandes et ne peut pas être supprimé.";
+        } else {
+          errorMessage = error.response?.data?.message || errorMessage;
+        }
+      }
       toast({
         title: "Erreur",
         description: errorMessage,
@@ -239,145 +241,145 @@ export default function AdminProductsPage() {
         </Button>
       </div>
       <Button className="mb-4" onClick={() => setIsAddDialogOpen(true)}>Ajouter un produit</Button>
-      
+
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Ajouter un produit</DialogTitle>
           </DialogHeader>
           <form onSubmit={form.handleSubmit(handleCreateProduct)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nom</Label>
-                <Input 
-                  id="name" 
-                  placeholder="Nom du produit" 
-                  {...form.register("name")} 
-                />
-                {form.formState.errors.name && (
-                  <p className="text-sm text-red-500">{form.formState.errors.name.message as string}</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea 
-                  id="description" 
-                  placeholder="Description du produit" 
-                  {...form.register("description")} 
-                />
-                {form.formState.errors.description && (
-                  <p className="text-sm text-red-500">{form.formState.errors.description.message as string}</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="price">Prix</Label>
-                <Input 
-                  id="price" 
-                  type="number" 
-                  step="0.01" 
-                  min="0" 
-                  placeholder="0.00" 
-                  {...form.register("price")} 
-                />
-                {form.formState.errors.price && (
-                  <p className="text-sm text-red-500">{form.formState.errors.price.message as string}</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="stock">Stock</Label>
-                <Input 
-                  id="stock" 
-                  type="number" 
-                  min="0" 
-                  placeholder="0" 
-                  {...form.register("stock")} 
-                />
-                {form.formState.errors.stock && (
-                  <p className="text-sm text-red-500">{form.formState.errors.stock.message as string}</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="category_id">Catégorie</Label>
-                <Select 
-                  onValueChange={(value) => form.setValue("category_id", parseInt(value), { shouldValidate: true })} 
-                  value={form.getValues("category_id") ? form.getValues("category_id").toString() : ""}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner une catégorie" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id.toString()}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {form.formState.errors.category_id && (
-                  <p className="text-sm text-red-500">{form.formState.errors.category_id.message as string}</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="brand_id">Marque</Label>
-                <Select 
-                  onValueChange={(value) => form.setValue("brand_id", parseInt(value), { shouldValidate: true })} 
-                  value={form.getValues("brand_id") !== undefined && form.getValues("brand_id") !== null ? form.getValues("brand_id")!.toString() : ""}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner une marque" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {brands.map((brand) => (
-                      <SelectItem key={brand.id} value={brand.id.toString()}>
-                        {brand.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {form.formState.errors.brand_id && (
-                  <p className="text-sm text-red-500">{form.formState.errors.brand_id.message as string}</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="image">URL de l&apos;image</Label>
-                <Input 
-                  id="image" 
-                  placeholder="https://exemple.com/image.jpg" 
-                  {...form.register("image")} 
-                />
-                {form.formState.errors.image && (
-                  <p className="text-sm text-red-500">{form.formState.errors.image.message as string}</p>
-                )}
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="featured" 
-                  checked={form.watch("featured")} 
-                  onCheckedChange={(checked) => form.setValue("featured", checked as boolean)} 
-                />
-                <Label htmlFor="featured">Mis en avant</Label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="coming_soon" 
-                  checked={form.watch("coming_soon")} 
-                  onCheckedChange={(checked) => form.setValue("coming_soon", checked as boolean)} 
-                />
-                <Label htmlFor="coming_soon">Bientôt disponible</Label>
-              </div>
-              
-              <Button type="submit">Créer</Button>
-            </form>
-        </DialogContent>
-      </Dialog>
-      <Table>
+            <div className="space-y-2">
+              <Label htmlFor="name">Nom</Label>
+              <Input
+                id="name"
+                placeholder="Nom du produit"
+                {...form.register("name")} />
+              {form.formState.errors.name && (
+                <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Description du produit"
+                {...form.register("description")} />
+              {form.formState.errors.description && (
+                <p className="text-sm text-red-500">{form.formState.errors.description.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="price">Prix</Label>
+              <Input
+                id="price"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                {...form.register("price")} />
+              {form.formState.errors.price && (
+                <p className="text-sm text-red-500">{form.formState.errors.price.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="stock">Stock</Label>
+              <Input
+                id="stock"
+                type="number"
+                min="0"
+                placeholder="0"
+                {...form.register("stock")} />
+              {form.formState.errors.stock && (
+                <p className="text-sm text-red-500">{form.formState.errors.stock.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="category_id">Catégorie</Label>
+              <Select
+                onValueChange={(value) => form.setValue("category_id", parseInt(value), { shouldValidate: true })}
+                value={form.getValues("category_id") ? form.getValues("category_id").toString() : ""}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id.toString()}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {form.formState.errors.category_id && (
+                <p className="text-sm text-red-500">{form.formState.errors.category_id.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="brand_id">Marque</Label>
+              <Select
+                onValueChange={(value) => form.setValue("brand_id", value ? parseInt(value) : undefined, { shouldValidate: true })}
+                value={form.getValues("brand_id") ? form.getValues("brand_id")?.toString() : ""}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une marque" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Aucune marque</SelectItem>
+                  {brands.map((brand) => (
+                    <SelectItem key={brand.id} value={brand.id.toString()}>
+                      {brand.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {form.formState.errors.brand_id && (
+                <p className="text-sm text-red-500">{form.formState.errors.brand_id.message}</p>
+              )}
+            </div>
+          <div className="space-y-2">
+            <Label htmlFor="image">Image</Label>
+            <Input
+              id="image"
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                form.setValue("image", file, { shouldValidate: true });
+              }}
+            />
+            {form.formState.errors.image && (
+              <p className="text-sm text-red-500">{form.formState.errors.image.message}</p>
+            )}
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="featured"
+              checked={form.watch("featured")}
+              onCheckedChange={(checked) => form.setValue("featured", checked as boolean)}
+            />
+            <Label htmlFor="featured">Mis en avant</Label>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="coming_soon"
+              checked={form.watch("coming_soon")}
+              onCheckedChange={(checked) => form.setValue("coming_soon", checked as boolean)}
+            />
+            <Label htmlFor="coming_soon">Bientôt disponible</Label>
+          </div>
+
+          <Button type="submit">Créer</Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+    <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Nom</TableHead>

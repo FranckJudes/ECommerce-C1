@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,7 +23,7 @@ export default function AdminDashboard() {
   };
 
   if (!user || user.role !== "admin") {
-    return null; 
+    return null;
   }
 
   return (
@@ -34,9 +35,11 @@ export default function AdminDashboard() {
         </Button>
       </div>
       <Tabs defaultValue="products" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="products">Produits</TabsTrigger>
           <TabsTrigger value="categories">Catégories</TabsTrigger>
+          <TabsTrigger value="brands">Marques</TabsTrigger>
+          <TabsTrigger value="orders">Commandes</TabsTrigger>
         </TabsList>
         <TabsContent value="products">
           <Button asChild className="mb-4">
@@ -49,6 +52,18 @@ export default function AdminDashboard() {
             <Link href="/admin/categories">Gérer les catégories</Link>
           </Button>
           <p>Gérer les catégories de produits.</p>
+        </TabsContent>
+        <TabsContent value="brands">
+          <Button asChild className="mb-4">
+            <Link href="/admin/brands">Gérer les marques</Link>
+          </Button>
+          <p>Gérer les marques de produits.</p>
+        </TabsContent>
+        <TabsContent value="orders">
+          <Button asChild className="mb-4">
+            <Link href="/admin/orders">Gérer les commandes</Link>
+          </Button>
+          <p>Gérer les commandes des clients.</p>
         </TabsContent>
       </Tabs>
     </div>

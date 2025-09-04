@@ -145,33 +145,11 @@ export default function AdminProductsPage() {
 
   const handleCreateProduct = async (data: ProductFormData) => {
     try {
-      // Create FormData object for file upload
-      const formData = new FormData();
-      formData.append('name', data.name);
-      formData.append('description', data.description);
-      formData.append('price', data.price.toString());
-      formData.append('stock', data.stock.toString());
-      formData.append('category_id', data.category_id.toString());
-      
-      if (data.brand_id) {
-        formData.append('brand_id', data.brand_id.toString());
-      }
-      
-      if (data.featured !== undefined) {
-        formData.append('featured', data.featured ? '1' : '0');
-      }
-      
-      if (data.coming_soon !== undefined) {
-        formData.append('coming_soon', data.coming_soon ? '1' : '0');
-      }
-      
-      // Append image file if it exists
-      if (data.image && data.image instanceof FileList && data.image.length > 0) {
-        formData.append('image', data.image[0]);
-      }
-      
-      // @ts-ignore - FormData is handled in the createProduct function
-      const newProduct = await createProduct(formData);
+      const newProduct = await createProduct({
+        ...data,
+        image: data.image // File directement
+      });
+  
       setProducts([...products, newProduct]);
       toast({
         title: "Succès",
@@ -180,10 +158,10 @@ export default function AdminProductsPage() {
       form.reset();
       setIsAddDialogOpen(false);
     } catch (error: unknown) {
-      console.error("Erreur de création du produit:", error);
-      const errorMessage = error instanceof AxiosError && error.response?.data?.message
-        ? error.response.data.message
-        : "Échec de la création du produit";
+      const errorMessage =
+        error instanceof AxiosError && error.response?.data?.message
+          ? error.response.data.message
+          : "Échec de la création du produit";
       toast({
         title: "Erreur",
         description: errorMessage,
@@ -191,6 +169,8 @@ export default function AdminProductsPage() {
       });
     }
   };
+  
+  
 
   const handleDeleteProduct = async (id: number) => {
     if (!confirm("Voulez-vous vraiment supprimer ce produit ?")) return;
@@ -303,7 +283,7 @@ export default function AdminProductsPage() {
                 step="0.01"
                 min="0"
                 placeholder="0.00"
-                {...form.register("price")} />
+                {...form.register("price",{ valueAsNumber: true })} />
               {form.formState.errors.price && (
                 <p className="text-sm text-red-500">{form.formState.errors.price.message}</p>
               )}
@@ -326,12 +306,12 @@ export default function AdminProductsPage() {
               <Label htmlFor="category_id">Catégorie</Label>
               <Select
                 onValueChange={(value) => form.setValue("category_id", parseInt(value), { shouldValidate: true })}
-                value={form.getValues("category_id") ? form.getValues("category_id").toString() : ""}
+                value={form.getValues("category_id")?.toString() || undefined}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner une catégorie" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-60 overflow-auto">
                   {categories.map((category) => (
                     <SelectItem key={category.id} value={category.id.toString()}>
                       {category.name}
@@ -347,14 +327,15 @@ export default function AdminProductsPage() {
             <div className="space-y-2">
               <Label htmlFor="brand_id">Marque</Label>
               <Select
-                onValueChange={(value) => form.setValue("brand_id", value ? parseInt(value) : undefined, { shouldValidate: true })}
-                value={form.getValues("brand_id") ? form.getValues("brand_id")?.toString() : ""}
+                onValueChange={(value) =>
+                  form.setValue("brand_id", value ? parseInt(value) : undefined, { shouldValidate: true })
+                }
+                value={form.getValues("brand_id")?.toString() || undefined} // <-- utiliser undefined pour "vide"
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner une marque" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Aucune marque</SelectItem>
+                <SelectContent className="max-h-60 overflow-auto">
                   {brands.map((brand) => (
                     <SelectItem key={brand.id} value={brand.id.toString()}>
                       {brand.name}
@@ -366,6 +347,7 @@ export default function AdminProductsPage() {
                 <p className="text-sm text-red-500">{form.formState.errors.brand_id.message}</p>
               )}
             </div>
+            
           <div className="space-y-2">
             <Label htmlFor="image">Image</Label>
             <Input

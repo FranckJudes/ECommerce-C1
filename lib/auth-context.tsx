@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import api from "./api";
+import { toast } from "react-toastify";
 
 interface User {
   id: number;
@@ -60,15 +61,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await api.post("/login", { email, password });
       const { user, token } = response.data;
+  
+      // Sauvegarde du token
       localStorage.setItem("auth_token", token);
       api.defaults.headers.Authorization = `Bearer ${token}`;
+  
       setUser(user);
       router.push("/");
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Erreur de connexion";
       throw new Error(errorMessage);
     }
+
   };
+  
 
   const register = async (name: string, email: string, password: string, password_confirmation: string) => {
     try {
@@ -84,12 +90,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = async () => {
+   const logout = async () => {
     try {
       await api.post("/logout");
       localStorage.removeItem("auth_token");
       delete api.defaults.headers.Authorization;
       setUser(null);
+      toast.success("Deconnexion réussie !");
       router.push("/auth/sign-in");
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error);

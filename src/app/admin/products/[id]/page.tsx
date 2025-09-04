@@ -12,7 +12,8 @@ import {
   getBrands,
   deleteProduct,
 } from "../../../../../lib/api";
-import { AxiosError } from "axios";
+import axios, { AxiosError } from "axios";
+import { Button } from "@/components/ui/button";
 
 interface Category {
   id: number;
@@ -76,7 +77,7 @@ export default function EditProductPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
-  const [, setSaving] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("details");
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
@@ -179,16 +180,31 @@ export default function EditProductPage() {
     e.preventDefault();
     const errors = validateForm(formData);
     setValidationErrors(errors);
+    const formPayload = new FormData();
+      formPayload.append("name", formData.name);
+      formPayload.append("description", formData.description);
+      formPayload.append("price", formData.price.toString());
+      formPayload.append("stock", formData.stock.toString());
+      formPayload.append("category_id", formData.category_id.toString());
+      if (formData.brand_id) formPayload.append("brand_id", formData.brand_id.toString());
+      if (formData.image) formPayload.append("image", formData.image);
+      formPayload.append("featured", formData.featured ? "true" : "false");
+      formPayload.append("coming_soon", formData.coming_soon ? "true" : "false");
+
+    
     
     setSaving(true);
     try {
       console.log("Envoi des données:", formData);
-      const updatedProduct = await updateProduct(id, {
-        ...formData,
-        brand_id: formData.brand_id ?? null,
+      const updatedProduct = await axios.post(`/products/${id}`, formPayload, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
-      setProduct(updatedProduct);
-      setImagePreview(updatedProduct.image || null);
+      
+      
+      setProduct(updatedProduct.data);
+      setImagePreview(updatedProduct.data.image || null);
       toast({
         title: "Succès",
         description: "Produit mis à jour avec succès.",
@@ -346,14 +362,16 @@ export default function EditProductPage() {
         .tab-button {
           padding: 0.5rem 1rem;
           border: 1px solid #d1d5db;
-          background-color: white;
+          background-color: black;
           border-radius: 0.375rem 0.375rem 0 0;
           cursor: pointer;
+          color:white;
+          
         }
         .tab-button.active {
-          background-color: #3b82f6;
-          color: white;
-          border-color: #3b82f6;
+          background-color:white;
+          color: black;
+          border-color: black;
         }
         .card {
           background-color: white;
@@ -408,7 +426,7 @@ export default function EditProductPage() {
       </div>
 
       {activeTab === "details" && (
-        <div className="card">
+        <div className="card" style={{ color: "black" }}>
           <div className="card-header">
             <h2 className="text-xl font-bold">Informations du produit</h2>
             <p className="text-gray-600">
@@ -480,14 +498,25 @@ export default function EditProductPage() {
                 </div>
               </div>
 
-              {/* ... (reste du formulaire inchangé) */}
+              <div className="pt-6">
+                <Button
+                  type="submit" // ✅ c'est ça qui déclenche handleSubmit
+                  variant="default"
+                  className="bg-black text-white hover:bg-gray-800"
+                  disabled={saving} // 🔥 désactive pendant le save
+                >
+                  {saving ? "Sauvegarde..." : "Sauvegarder les modifications"}
+                </Button>
+              </div>
             </form>
+            
           </div>
+          
         </div>
       )}
 
       {activeTab === "preview" && (
-        <div className="card">
+        <div className="card" style={{color:"black"}}>
           <div className="card-header">
             <h2 className="text-xl font-bold">Aperçu du produit</h2>
             <p className="text-gray-600">
@@ -498,12 +527,18 @@ export default function EditProductPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100">
                 {product.image ? (
-                  <Image
-                    src={product.image && !product.image.startsWith('/') ? product.image : product.image && product.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${product.image}` : "/placeholder.svg"}
-                    alt={product.name}
-                    fill
-                    className="object-cover"
-                  />
+                 <img
+                 src={
+                  product.image && product.image.trim() !== ''
+                  ? (product.image.startsWith('/') 
+                  ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${product.image}` 
+                  : product.image)
+              : "/placeholder.svg"
+                }
+                 alt={product.name}
+                 className="object-cover"
+               />
+               
                 ) : (
                   <div className="flex items-center justify-center h-full text-gray-400">
                     Aucune image

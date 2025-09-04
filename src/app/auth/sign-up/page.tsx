@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "react-toastify";
 import { useAuth } from "../../../../lib/auth-context";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -19,6 +20,9 @@ export default function SignUpPage() {
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const { register } = useAuth();
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +50,9 @@ export default function SignUpPage() {
     <div className="container max-w-md px-4 py-16">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold">Créer un compte</h1>
-        <p className="text-muted-foreground mt-2">Rejoignez SneakerX pour acheter et vendre des sneakers authentiques</p>
+        <p className="text-muted-foreground mt-2">
+          Rejoignez SneakerX pour acheter et vendre des sneakers authentiques
+        </p>
       </div>
 
       <form onSubmit={handleSignUp} className="space-y-4">
@@ -57,7 +63,9 @@ export default function SignUpPage() {
               id="firstName"
               placeholder="John"
               value={name.split(" ")[0] || ""}
-              onChange={(e) => setName(e.target.value + (name.split(" ")[1] || ""))}
+              onChange={(e) =>
+                setName(e.target.value + (name.split(" ")[1] || ""))
+              }
               required
             />
           </div>
@@ -67,7 +75,9 @@ export default function SignUpPage() {
               id="lastName"
               placeholder="Doe"
               value={name.split(" ")[1] || ""}
-              onChange={(e) => setName((name.split(" ")[0] || "") + " " + e.target.value)}
+              onChange={(e) =>
+                setName((name.split(" ")[0] || "") + " " + e.target.value)
+              }
               required
             />
           </div>
@@ -85,39 +95,74 @@ export default function SignUpPage() {
           />
         </div>
 
+        {/* Mot de passe */}
         <div className="space-y-2">
           <Label htmlFor="password">Mot de passe</Label>
-          <Input
-            id="password"
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
           <p className="text-xs text-muted-foreground">
-            Le mot de passe doit contenir au moins 8 caractères, un chiffre et un caractère spécial.
+            Le mot de passe doit contenir au moins 8 caractères, un chiffre et
+            un caractère spécial.
           </p>
         </div>
 
+        {/* Confirmation du mot de passe */}
         <div className="space-y-2">
           <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
-          <Input
-            id="confirmPassword"
-            type="password"
-            placeholder="••••••••"
-            value={passwordConfirmation}
-            onChange={(e) => setPasswordConfirmation(e.target.value)}
-            required
-          />
+          <div className="relative">
+            <Input
+              id="confirmPassword"
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="••••••••"
+              value={passwordConfirmation}
+              onChange={(e) => setPasswordConfirmation(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+              onClick={() =>
+                setShowConfirmPassword(!showConfirmPassword)
+              }
+            >
+              {showConfirmPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
         </div>
 
         <div className="flex items-start space-x-2 pt-2">
-          <Checkbox id="terms" checked={termsAccepted} onCheckedChange={(checked) => setTermsAccepted(!!checked)} />
+          <Checkbox
+            id="terms"
+            checked={termsAccepted}
+            onCheckedChange={(checked) => setTermsAccepted(!!checked)}
+          />
           <Label htmlFor="terms" className="text-sm leading-tight">
             J&apos;accepte les{" "}
             <Link href="/terms" className="text-primary hover:underline">
-              Conditions d&aposutilisation
+              Conditions d&apos;utilisation
             </Link>{" "}
             et la{" "}
             <Link href="/privacy" className="text-primary hover:underline">
@@ -137,12 +182,18 @@ export default function SignUpPage() {
             <Separator className="w-full" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Ou continuer avec</span>
+            <span className="bg-background px-2 text-muted-foreground">
+              Ou continuer avec
+            </span>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4 mt-6">
-          <Button variant="outline" type="button" className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            type="button"
+            className="flex items-center gap-2"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -157,7 +208,11 @@ export default function SignUpPage() {
             </svg>
             Google
           </Button>
-          <Button variant="outline" type="button" className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            type="button"
+            className="flex items-center gap-2"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"

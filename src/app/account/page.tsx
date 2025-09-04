@@ -1,6 +1,5 @@
 // app/account/page.tsx
 "use client";
-import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -13,19 +12,22 @@ import AddressBook from "@/components/address-book";
 import UserBrands from "@/components/user-brands";
 import { useAuth } from "../../../lib/auth-context";
 
-export default function AccountPage() {
-  const { user, isLoading } = useAuth();
-  const router = useRouter();
 
+
+export default function AccountPage() {
+  const { user, isLoading ,logout} = useAuth();
+  const router = useRouter();
   useEffect(() => {
     if (!isLoading && !user) {
       router.push("/auth/sign-in");
     }
+    
   }, [user, isLoading, router]);
 
   if (isLoading || !user) {
     return <div>Chargement...</div>;
   }
+ 
 
   return (
     <div className="container px-4 py-8">
@@ -34,9 +36,18 @@ export default function AccountPage() {
           <h1 className="text-3xl font-bold">Mon Compte</h1>
           <p className="text-muted-foreground">Gérez vos paramètres et préférences</p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/auth/sign-in">Déconnexion</Link>
+       
+        <div className="flex gap-2">
+      {user.role === "admin" && (
+        <Button variant="outline" onClick={() => router.push("../admin")}>
+          Tableau de Bord
         </Button>
+      )}
+      <Button variant="outline" onClick={logout}>
+        Déconnexion
+      </Button>
+    </div>
+
       </div>
 
       <Tabs defaultValue="profile" className="w-full">

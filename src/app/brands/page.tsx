@@ -13,7 +13,7 @@ export default function BrandsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-
+  const [page, setPage] = useState(1);
   useEffect(() => {
     const fetchBrands = async () => {
       try {

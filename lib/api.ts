@@ -1,12 +1,13 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
 import { ReactNode } from "react";
+import { toast } from "react-toastify";
 
 const api: AxiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 10000,
+  timeout: 30000,
 });
 
 // Intercepteur pour ajouter le token d'authentification
@@ -21,15 +22,34 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error) => {
-    console.error("Erreur API détaillée:", {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      url: error.config?.url,
-    });
+    
+
+    // Gestion des erreurs selon status
+    if (error.response) {
+      switch (error.response.status) {
+        case 401:
+          toast.error("Email ou mot de passe incorrect");
+          break;
+        case 403:
+          toast.error("Accès refusé");
+          break;
+        case 404:
+          toast.error("Ressource non trouvée");
+          break;
+        case 500:
+          toast.error("Erreur interne du serveur");
+          break;
+        default:
+          toast.error(error.response.data?.message || "Une erreur est survenue");
+      }
+    } else {
+      toast.error("Impossible de joindre le serveur");
+    }
+
     return Promise.reject(error);
   }
 );
@@ -249,20 +269,42 @@ export const getClientProducts = async (params: {
   const response = await getProducts(params);
   const products = response.data;
 
-  // Mapper vers ClientProduct
-  const clientProducts = await Promise.all(products.map(mapProductToClientProduct));
+  // Récupérer les catégories **une seule fois**
+  const categories = await getCategories();
 
-  // Filtrer côté client si is_new ou is_upcoming sont spécifiés
+  // Mapper les produits
+  const clientProducts = products.map(product => {
+    const category = categories.find(c => c.id === product.category_id);
+
+    const createdDate = new Date(product.created_at);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const isNew = createdDate >= thirtyDaysAgo;
+
+    return {
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image || "/placeholder.svg",
+      brand: category ? category.name : "Inconnue",
+      release_date: product.created_at,
+      is_new: isNew,
+      is_upcoming: product.coming_soon,
+    };
+  });
+
+  // Filtrer côté client si nécessaire
   let filteredProducts = clientProducts;
   if (params.is_new) {
-    filteredProducts = filteredProducts.filter((p) => p.is_new);
+    filteredProducts = filteredProducts.filter(p => p.is_new);
   }
   if (params.is_upcoming) {
-    filteredProducts = filteredProducts.filter((p) => p.is_upcoming);
+    filteredProducts = filteredProducts.filter(p => p.is_upcoming);
   }
 
   return { ...response, data: filteredProducts };
 };
+
 
 export const getFeaturedProducts = async () => {
   try {
@@ -280,14 +322,16 @@ export const getProduct = async (id: number) => {
   return response.data;
 };
 
-export const createProduct = async (data: FormData | {
+
+
+export const createProduct = async (data: {
   name: string;
   description: string;
   price: number;
   stock: number;
   category_id: number;
   brand_id?: number;
-  image?: File;
+  image?: File; // on met File directement
   featured?: boolean;
   coming_soon?: boolean;
 }) => {
@@ -299,27 +343,26 @@ export const createProduct = async (data: FormData | {
   formData.append("category_id", data.category_id.toString());
   if (data.brand_id) formData.append("brand_id", data.brand_id.toString());
   if (data.image) formData.append("image", data.image);
-  formData.append("featured", data.featured ? "true" : "false");
-  formData.append("coming_soon", data.coming_soon ? "true" : "false");
+  formData.append("featured", (data.featured ? "true" : "false"));
+  formData.append("coming_soon", (data.coming_soon ? "true" : "false"));
 
   const response = await api.post<Product>("/products", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
+    headers: { "Content-Type": "multipart/form-data" },
   });
+
   return response.data;
 };
 
 export const updateProduct = async (
   id: number,
-  data: FormData | {
+  data: {
     name?: string;
     description?: string;
     price?: number;
     stock?: number;
     category_id?: number;
-    brand_id?: number | null;
-    image?: File | string;
+    brand_id?: number;
+    image?: File;
     featured?: boolean;
     coming_soon?: boolean;
   }
@@ -330,18 +373,19 @@ export const updateProduct = async (
   if (data.price !== undefined) formData.append("price", data.price.toString());
   if (data.stock !== undefined) formData.append("stock", data.stock.toString());
   if (data.category_id) formData.append("category_id", data.category_id.toString());
-  if (data.brand_id !== undefined) formData.append("brand_id", data.brand_id?.toString() ?? "");
+  if (data.brand_id) formData.append("brand_id", data.brand_id.toString());
   if (data.image) formData.append("image", data.image);
   if (data.featured !== undefined) formData.append("featured", data.featured ? "true" : "false");
   if (data.coming_soon !== undefined) formData.append("coming_soon", data.coming_soon ? "true" : "false");
 
   const response = await api.put<Product>(`/products/${id}`, formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
+    headers: { "Content-Type": "multipart/form-data" },
   });
+
   return response.data;
 };
+
+
 
 export const deleteProduct = async (id: number) => {
   const response = await api.delete(`/products/${id}`);

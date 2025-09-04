@@ -171,6 +171,7 @@ export default function Header() {
           <span className="font-bold text-xl">SneakerX</span>
         </Link>
 
+       
         <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
           <Link href="/products" className="transition-colors hover:text-foreground/80">
             Products

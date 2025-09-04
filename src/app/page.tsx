@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import FeaturedProducts from "@/components/featured-products"
 import TrendingBrands from "@/components/trending-brands"
@@ -18,7 +19,9 @@ export default function Home() {
       <section className="container px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-3xl font-bold">Featured Products</h2>
-          <Button variant="outline">View All</Button>
+          <Link href="/new-releases">
+            <Button variant="outline">View All</Button>
+          </Link>
         </div>
         <FeaturedProducts />
       </section>
@@ -26,7 +29,9 @@ export default function Home() {
       <section className="container px-4 py-8 bg-muted/50">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-3xl font-bold">Trending Brands</h2>
-          <Button variant="outline">View All Brands</Button>
+          <Link href="/brands">
+            <Button variant="outline">View All Brands</Button>
+          </Link>
         </div>
         <TrendingBrands />
       </section>

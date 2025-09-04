@@ -109,66 +109,8 @@ export default function Footer() {
                   Sale
                 </Link>
               </li>
-              <li>
-                <Link
-                  href="/gift-cards"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Gift Cards
-                </Link>
-              </li>
+           
             </ul>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-bold mb-4">Help</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link href="/faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  FAQ
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/shipping"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Shipping & Returns
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Contact Us
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/size-guide"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Size Guide
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/track-order"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Track Order
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-bold mb-4">Subscribe</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Subscribe to our newsletter to get updates on new releases, sales, and exclusive offers.
-            </p>
-            <div className="flex gap-2">
-              <Input placeholder="Your email" className="flex-1" />
-              <Button>Subscribe</Button>
-            </div>
           </div>
         </div>
 

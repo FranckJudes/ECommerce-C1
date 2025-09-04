@@ -1,6 +1,4 @@
-// app/auth/sign-in/page.tsx
-"use client";
-import type React from "react";
+"use client"; 
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -9,12 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "react-toastify";
-import { useAuth } from "../../../../lib/auth-context"; 
+import { useAuth } from "../../../../lib/auth-context";
+import { Eye, EyeOff } from "lucide-react"; // 👈 icônes
 
 export default function SignInPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // 👈 état pour l’œil
   const { login } = useAuth();
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -26,7 +26,7 @@ export default function SignInPage() {
       toast.success("Connexion réussie !");
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Erreur lors de la connexion";
-      toast.error(errorMessage);
+      //toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -36,7 +36,9 @@ export default function SignInPage() {
     <div className="container max-w-md px-4 py-16">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold">Bienvenue</h1>
-        <p className="text-muted-foreground mt-2">Connectez-vous à votre compte SneakerX</p>
+        <p className="text-muted-foreground mt-2">
+          Connectez-vous à votre compte SneakerX
+        </p>
       </div>
 
       <form onSubmit={handleSignIn} className="space-y-4">
@@ -55,18 +57,37 @@ export default function SignInPage() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Mot de passe</Label>
-            <Link href="/auth/forgot-password" className="text-sm text-primary hover:underline">
+            <Link
+              href="/auth/forgot-password"
+              className="text-sm text-primary hover:underline"
+            >
               Mot de passe oublié ?
             </Link>
           </div>
-          <Input
-            id="password"
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+
+          {/* Champ mot de passe avec icône */}
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="pr-10" // espace pour l’icône
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              onClick={() => setShowPassword((prev) => !prev)}
+            >
+              {showPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center space-x-2">
@@ -80,7 +101,6 @@ export default function SignInPage() {
           {isLoading ? "Connexion en cours..." : "Se connecter"}
         </Button>
       </form>
-
       <div className="mt-6">
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
@@ -132,5 +152,6 @@ export default function SignInPage() {
         </Link>
       </p>
     </div>
+
   );
 }

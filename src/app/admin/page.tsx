@@ -7,6 +7,7 @@ import { useAuth } from "../../../lib/auth-context";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
+
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const router = useRouter();
@@ -19,7 +20,6 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     await logout();
-    router.push("/login");
   };
 
   if (!user || user.role !== "admin") {

@@ -21,32 +21,31 @@ export default function NewReleasesPage() {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        // Récupérer les nouvelles sorties
-        const newProducts = await getClientProducts({ is_new: true });
+  
+        const [newProducts, upcomingProducts] = await Promise.all([
+          getClientProducts({ is_new: true }),
+          getClientProducts({ is_upcoming: true })
+        ]);
+  
         setNewReleases(newProducts.data || []);
-
-        // Récupérer les sorties à venir
-        const upcomingProducts = await getClientProducts({ is_upcoming: true });
         setUpcomingReleases(upcomingProducts.data || []);
-
-        setLoading(false);
+  
       } catch (err: unknown) {
-        console.error("Erreur lors du chargement des produits :", err);
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError("Impossible de charger les produits");
-        }
-        setLoading(false);
+        console.error(err);
+        setError(err instanceof Error ? err.message : "Impossible de charger les produits");
         toast({
           title: "Erreur",
           description: "Impossible de charger les produits",
           variant: "destructive",
         });
+      } finally {
+        setLoading(false);
       }
     };
+  
     fetchProducts();
   }, []);
+  
 
   if (loading) return <div className="container px-4 py-8">Chargement...</div>;
   if (error) return <div className="container px-4 py-8">Erreur : {error}</div>;
@@ -84,7 +83,8 @@ export default function NewReleasesPage() {
                           fill
                           className="object-cover transition-transform group-hover:scale-105"
                         />
-                        <Badge className="absolute top-2 owo541-right-2">Nouveau</Badge>
+                        <Badge variant="secondary" className="absolute top-2 right-2">Nouveau</Badge>
+
                       </div>
                     </CardContent>
                     <CardFooter className="flex flex-col items-start p-4">
@@ -149,13 +149,7 @@ export default function NewReleasesPage() {
         </TabsContent>
       </Tabs>
 
-      <div className="bg-muted/50 rounded-lg p-6 text-center">
-        <h2 className="text-xl font-bold mb-2">Restez informé des prochaines sorties</h2>
-        <p className="text-muted-foreground mb-4">
-          Inscrivez-vous à notre newsletter pour être alerté des nouvelles sorties et des réapprovisionnements.
-        </p>
-        <Button>S&apos;inscrire aux alertes</Button>
-      </div>
+     
     </div>
   );
 }

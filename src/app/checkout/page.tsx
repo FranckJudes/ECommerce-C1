@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "react-toastify";
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "../../../lib/auth-context";
 import { createOrder, processPayment } from "../../../lib/api";
@@ -115,20 +115,12 @@ export default function CheckoutPage() {
     const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shippingInfo.email);
 
     if (!allFieldsFilled) {
-      toast({
-        title: "Informations incomplètes",
-        description: `Veuillez remplir tous les champs obligatoires : ${missingFields.join(', ')}.`,
-        variant: "destructive",
-      });
+      toast.error(`Veuillez remplir tous les champs obligatoires : ${missingFields.join(', ')}.`);
       return false;
     }
 
     if (!emailValid) {
-      toast({
-        title: "Email invalide",
-        description: "Veuillez entrer une adresse email valide.",
-        variant: "destructive",
-      });
+      toast.error("Veuillez entrer une adresse email valide.");
       return false;
     }
 
@@ -151,22 +143,14 @@ export default function CheckoutPage() {
       const hasAllCardInfo = missingFields.length === 0;
 
       if (!hasAllCardInfo) {
-        toast({
-          title: "Informations de paiement incomplètes",
-          description: `Veuillez remplir tous les champs obligatoires : ${missingFields.join(', ')}.`,
-          variant: "destructive",
-        });
+        toast.error(`Veuillez remplir tous les champs obligatoires : ${missingFields.join(', ')}.`);
       }
 
       return hasAllCardInfo;
     } else if (paymentInfo.paymentMethod === "mtn") {
       const hasPhoneNumber = !!paymentInfo.phoneNumber?.trim();
       if (!hasPhoneNumber) {
-        toast({
-          title: "Numéro de téléphone manquant",
-          description: "Veuillez entrer votre numéro de téléphone pour MTN Mobile Money.",
-          variant: "destructive",
-        });
+        toast.error("Veuillez entrer votre numéro de téléphone pour MTN Mobile Money.");
       }
       return hasPhoneNumber;
     } else if (paymentInfo.paymentMethod === "paypal") {
@@ -187,11 +171,7 @@ export default function CheckoutPage() {
     }
 
     if (!cart || cart.length === 0) {
-      toast({
-        title: "Panier vide",
-        description: "Votre panier est vide. Ajoutez des produits avant de passer une commande.",
-        variant: "destructive",
-      });
+      toast.error("Votre panier est vide. Ajoutez des produits avant de passer une commande.");
       router.push("/products");
       return;
     }
@@ -222,11 +202,7 @@ export default function CheckoutPage() {
       const orderResponse = await createOrder(orderData);
 
       if (!orderResponse || !orderResponse.id) {
-        toast({
-          title: "Erreur de commande",
-          description: "Impossible de créer la commande. Veuillez réessayer.",
-          variant: "destructive",
-        });
+        toast.error("Impossible de créer la commande. Veuillez réessayer.");
         setIsLoading(false);
         return;
       }
@@ -255,29 +231,18 @@ export default function CheckoutPage() {
           // Vider le panier
           clearCart();
           
-          toast({
-            title: "Commande réussie",
-            description: `Votre commande #${orderResponse.id} a été créée et payée avec succès.`,
-          });
+          toast.success(`Votre commande #${orderResponse.id} a été créée et payée avec succès.`);
           
           router.push(`/orders/${orderResponse.id}`);
         } else {
-          toast({
-            title: "Erreur de paiement",
-            description: paymentResponse?.message || "Le paiement a échoué. Veuillez réessayer.",
-            variant: "destructive",
-          });
+          toast.error(paymentResponse?.message || "Le paiement a échoué. Veuillez réessayer.");
         }
       } catch (paymentError) {
         const errorMessage = paymentError instanceof AxiosError && paymentError.response?.data?.message
           ? paymentError.response.data.message
           : "Le paiement a rencontré un problème, mais la commande a été créée.";
           
-        toast({
-          title: "Erreur de paiement",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        toast.error(errorMessage);
       }
 
     } catch (error: unknown) {
@@ -285,11 +250,7 @@ export default function CheckoutPage() {
         ? error.response.data.message
         : "Une erreur s'est produite lors de la création de la commande.";
       
-      toast({
-        title: "Erreur lors de la commande",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -298,20 +259,14 @@ export default function CheckoutPage() {
   const handleContinueToPayment = () => {
     if (validateShipping()) {
       setStep("payment");
-      toast({
-        title: "Informations de livraison validées",
-        description: "Veuillez maintenant compléter les informations de paiement.",
-      });
+      toast("Informations de livraison validées");
     }
   };
 
   const handleContinueToReview = () => {
     if (validatePayment()) {
       setStep("review");
-      toast({
-        title: "Informations de paiement validées",
-        description: "Veuillez vérifier votre commande avant de la finaliser.",
-      });
+      toast("Informations de paiement validées");
     }
   };
 

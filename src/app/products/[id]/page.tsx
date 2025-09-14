@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCart } from "@/hooks/use-cart";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "react-toastify";
 import { useAuth } from "../../../../lib/auth-context";
 import api, { getProduct, getCategoryProducts } from "../../../../lib/api";
 import { AxiosError } from "axios";
@@ -72,11 +72,7 @@ export default function ProductPage() {
           ? error.response.data.message
           : "Impossible de charger le produit";
         setError(errorMessage);
-        toast({
-          title: "Erreur",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        toast.error(errorMessage);
         setIsLoading(false);
       }
     };
@@ -85,11 +81,7 @@ export default function ProductPage() {
 
   const handleAddToCart = () => {
     if (!selectedSize) {
-      toast({
-        title: "Veuillez sélectionner une taille",
-        description: "Vous devez sélectionner une taille avant d'ajouter au panier.",
-        variant: "destructive",
-      });
+      toast.error("Veuillez sélectionner une taille");
       return;
     }
 
@@ -105,21 +97,14 @@ export default function ProductPage() {
       quantity: 1,
     });
 
-    toast({
-      title: "Produit ajouté au panier",
-      description: `${product.name} (Taille: ${selectedSize}) a été ajouté à votre panier.`,
-    });
+    toast.success(`${product.name} (Taille: ${selectedSize}) a été ajouté à votre panier.`);
     setIsLoading(false);
   };
 
   const handleToggleFavorite = async () => {
     if (!user) {
-      toast({
-        title: "Connexion requise",
-        description: "Veuillez vous connecter pour ajouter aux favoris.",
-        variant: "destructive",
-      });
-      router.push("/login");
+      toast.error("Veuillez vous connecter pour ajouter aux favoris.");
+      router.push("/auth/sign-in");
       return;
     }
 
@@ -128,28 +113,18 @@ export default function ProductPage() {
         // Supprimer des favoris
         await api.delete(`/SavedItems/${productId}`);
         setIsFavorite(false);
-        toast({
-          title: "Retiré des favoris",
-          description: `${product?.name} a été retiré de vos favoris.`,
-        });
+        toast.success(`${product?.name} a été retiré de vos favoris.`);
       } else {
         // Ajouter aux favoris
         await api.post("/SavedItems", { product_id: productId });
         setIsFavorite(true);
-        toast({
-          title: "Ajouté aux favoris",
-          description: `${product?.name} a été ajouté à vos favoris.`,
-        });
+        toast.success(`${product?.name} a été ajouté à vos favoris.`);
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof AxiosError && error.response?.data?.message
         ? error.response.data.message
         : "Erreur lors de la gestion des favoris";
-      toast({
-        title: "Erreur",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast.error(errorMessage);
     }
   };
 

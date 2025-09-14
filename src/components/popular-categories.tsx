@@ -72,38 +72,54 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
-import { getCategories } from "../../lib/api";
+import { getCategories, getCategoryProducts, Category, Product } from "../../lib/api";
 
-interface Category {
-  id: number; // Changé de string à number pour correspondre à l'API
-  name: string;
-  description?: string; // Ajouté car l'API retourne description
-  image?: string; // Optionnel car absent de l'API
-  productCount?: number; // Optionnel car absent de l'API
-  created_at?: string;
-  updated_at?: string;
+interface CategoryWithImage extends Category {
+  productImage?: string;
+  productCount?: number;
 }
 
 export default function PopularCategories() {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryWithImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchCategoriesWithImages = async () => {
       try {
-        const data = await getCategories();
-        console.log("Données des catégories:", data); // Pour déboguer
-        setCategories(data);
+        const categoriesData = await getCategories();
+
+        // Pour chaque catégorie → récupérer un produit
+        const categoriesWithProducts = await Promise.all(
+          categoriesData.map(async (category: Category) => {
+            try {
+              const res = await getCategoryProducts(category.id, { per_page: 1 });
+              const firstProduct: Product | undefined = res.data[0];
+
+              return {
+                ...category,
+                productImage: firstProduct ? firstProduct.image : undefined,
+                productCount: res.data.length, // total visible, à améliorer si backend renvoie `total`
+              };
+            } catch (err) {
+              console.error(`Erreur chargement produits de la catégorie ${category.name}`, err);
+              return { ...category };
+            }
+          })
+        );
+
+        setCategories(categoriesWithProducts);
         setLoading(false);
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "Impossible de charger les catégories";
+        const errorMessage =
+          error instanceof Error ? error.message : "Impossible de charger les catégories";
         console.error("Erreur dans PopularCategories:", error);
         setError(errorMessage);
         setLoading(false);
       }
     };
-    fetchCategories();
+
+    fetchCategoriesWithImages();
   }, []);
 
   if (loading) return <p>Chargement des catégories...</p>;
@@ -117,7 +133,11 @@ export default function PopularCategories() {
             <CardContent className="p-0">
               <div className="relative aspect-square overflow-hidden bg-muted">
                 <Image
-                  src={category.image && !category.image.startsWith('/') ? category.image : category.image && category.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${category.image}` : "/placeholder.svg"} // Repli sur placeholder
+                  src={
+                    category.productImage
+                      ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${category.productImage}`
+                      : "/placeholder.svg"
+                  }
                   alt={category.name}
                   fill
                   className="object-cover transition-transform group-hover:scale-105"
@@ -126,7 +146,9 @@ export default function PopularCategories() {
                   <div>
                     <h3 className="text-lg font-bold text-white">{category.name}</h3>
                     <p className="text-sm text-white/80">
-                      {category.productCount ? `${category.productCount} Produits` : "Voir les produits"}
+                      {category.productCount
+                        ? `${category.productCount} Produits`
+                        : "Voir les produits"}
                     </p>
                   </div>
                 </div>

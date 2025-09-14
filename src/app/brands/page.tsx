@@ -74,7 +74,7 @@ export default function BrandsPage() {
                   <div className="flex items-center gap-4 mb-4">
                     <div className="relative w-16 h-16 bg-muted rounded-md overflow-hidden">
                       <Image
-                        src={brand.image && !brand.image.startsWith('/') ? brand.image : brand.image && brand.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${brand.image}` : "/placeholder.svg"}
+                        src={brand.logo && !brand.logo.startsWith('/') ? brand.logo : brand.logo && brand.logo.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${brand.logo}` : "/placeholder.svg"}
                         alt={brand.name}
                         fill
                         className="object-contain p-2"

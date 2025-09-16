@@ -46,7 +46,20 @@ export default function ProductPage() {
   const [isFavorite, setIsFavorite] = useState(false);
 
   // Tailles simulées (l'API ne fournit pas ce champ)
-  const sizes = ["US 7", "US 7.5", "US 8", "US 8.5", "US 9", "US 9.5", "US 10", "US 10.5", "US 11", "US 11.5", "US 12"];
+  const sizes = [
+    "40",
+    "40.5",
+    "41",
+    "42",
+    "42.5",
+    "43",
+    "44",
+    "44.5",
+    "45",
+    "46",
+    "46.5"
+  ];
+  
 
   useEffect(() => {
     const fetchData = async () => {

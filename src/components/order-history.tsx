@@ -10,18 +10,20 @@ import { AxiosError } from "axios";
 import { toast } from "@/hooks/use-toast";
 
 interface OrderItem {
-  id: string;
-  name: string;
-  price: number;
-  size: string;
-  color: string;
+  id: number;
   quantity: number;
-  image: string;
+  price: number;
+  product: {
+    id: number;
+    name: string;
+    image: string;
+    featured?: boolean;
+  };
 }
 
 interface Order {
-  id: string;
-  date: string;
+  id: number;
+  created_at: string;
   status: string;
   total: number;
   items: OrderItem[];
@@ -36,20 +38,21 @@ export default function OrderHistory() {
     const fetchOrders = async () => {
       setLoading(true);
       try {
-        const data = await getOrders();
-        setOrders(data.data || []);
-        setLoading(false);
-      } catch (error: unknown) {
-        const errorMessage = error instanceof AxiosError && error.response?.data?.message
-          ? error.response.data.message
-          : "Impossible de charger les commandes";
+        const ordersFromApi = await getOrders(); // renvoie déjà un tableau
+        setOrders(ordersFromApi || []);
+      } catch (err: unknown) {
+        const errorMessage =
+          err instanceof AxiosError && err.response?.data?.message
+            ? err.response.data.message
+            : "Impossible de charger les commandes";
         setError(errorMessage);
-        setLoading(false);
         toast({
           title: "Erreur",
           description: errorMessage,
           variant: "destructive",
         });
+      } finally {
+        setLoading(false);
       }
     };
     fetchOrders();
@@ -60,104 +63,83 @@ export default function OrderHistory() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-xl font-semibold">Your Orders</h3>
-      </div>
+      <h3 className="text-xl font-semibold">Vos commandes</h3>
 
       {orders.length > 0 ? (
-        <div className="space-y-4">
-          <Accordion type="single" collapsible className="w-full">
-            {orders.map((order) => (
-              <AccordionItem key={order.id} value={order.id}>
-                <AccordionTrigger className="py-4">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between w-full text-left">
-                    <div className="flex flex-col">
-                      <span className="font-medium">{order.id}</span>
-                      <span className="text-sm text-muted-foreground">{new Date(order.date).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span
-                        className={`text-sm ${
-                          order.status === "Delivered"
-                            ? "text-green-500"
-                            : order.status === "Shipped"
-                              ? "text-blue-500"
-                              : "text-yellow-500"
-                        }`}
-                      >
-                        {order.status}
-                      </span>
-                      <span className="font-medium">${order.total.toFixed(2)}</span>
-                    </div>
+        <Accordion type="single" collapsible className="w-full">
+          {orders.map((order) => (
+            <AccordionItem key={order.id} value={order.id.toString()}>
+              <AccordionTrigger className="py-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between w-full text-left">
+                  <div className="flex flex-col">
+                    <span className="font-medium">Commande #{order.id}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {new Date(order.created_at).toLocaleDateString()}
+                    </span>
                   </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      {order.items.map((item) => (
-                        <div key={item.id} className="flex gap-4 items-center">
-                          <div className="w-16 h-16 bg-muted rounded-md flex-shrink-0">
-                            <Image
-                              src={item.image && !item.image.startsWith('/') ? item.image : item.image && item.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${item.image}` : "/placeholder.svg"}
-                              alt={item.name}
-                              width={64}
-                              height={64}
-                              className="rounded-md"
-                            />
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-medium">{item.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              Size: {item.size} | Color: {item.color} | Qty: {item.quantity}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium">${item.price.toFixed(2)}</p>
-                          </div>
-                        </div>
-                      ))}
+                  <div className="flex items-center gap-4">
+                    <span
+                      className={`text-sm ${
+                        order.status === "completed"
+                          ? "text-green-500"
+                          : order.status === "pending"
+                          ? "text-yellow-500"
+                          : "text-gray-500"
+                      }`}
+                    >
+                      {order.status}
+                    </span>
+                    <span className="font-medium">{order.total.toFixed(2)} €</span>
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-4">
+                  {order.items.map((item) => (
+                    <div key={item.id} className="flex gap-4 items-center">
+                      <div className="w-16 h-16 bg-muted rounded-md flex-shrink-0">
+                        <Image
+                          src={
+                            item.product.image
+                              ? item.product.image.startsWith("/")
+                                ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${item.product.image}`
+                                : item.product.image
+                              : "/placeholder.svg"
+                          }
+                          alt={item.product.name}
+                          width={64}
+                          height={64}
+                          className="rounded-md object-cover"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium">{item.product.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Quantité: {item.quantity}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">{item.price.toFixed(2)} €</p>
+                      </div>
                     </div>
+                  ))}
 
-                    <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/orders/${order.id}`}>View Order Details</Link>
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        Track Package
-                      </Button>
-                      {order.status === "Delivered" && (
-                        <Button variant="outline" size="sm">
-                          Leave a Review
-                        </Button>
-                      )}
-                    </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/orders/${order.id}`}>Voir le détail</Link>
+                    </Button>
                   </div>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
       ) : (
         <div className="text-center py-12">
-          <div className="mx-auto w-24 h-24 mb-6 text-muted-foreground">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-full h-full"
-            >
-              <rect width="20" height="14" x="2" y="5" rx="2" />
-              <line x1="2" x2="22" y1="10" y2="10" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold mb-2">No orders yet</h2>
-          <p className="text-muted-foreground mb-6">You haven&apos;t placed any orders yet.</p>
+          <h2 className="text-2xl font-bold mb-2">Aucune commande</h2>
+          <p className="text-muted-foreground mb-6">Vous n'avez pas encore passé de commandes.</p>
           <Button asChild>
-            <Link href="/products">Start Shopping</Link>
+            <Link href="/products">Commencer vos achats</Link>
           </Button>
         </div>
       )}

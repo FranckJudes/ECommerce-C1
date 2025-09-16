@@ -67,9 +67,11 @@ export default function AccountPage() {
           <TabsTrigger value="addresses" className="flex-1">
             Adresses
           </TabsTrigger>
+          {user.role === "admin" && (
           <TabsTrigger value="brands" className="flex-1">
             Marques
           </TabsTrigger>
+        )}
         </TabsList>
 
         <TabsContent value="profile">
@@ -92,9 +94,11 @@ export default function AccountPage() {
           <AddressBook />
         </TabsContent>
 
-        <TabsContent value="brands">
-          <UserBrands />
-        </TabsContent>
+        {user.role === "admin" && (
+          <TabsContent value="brands">
+            <UserBrands />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

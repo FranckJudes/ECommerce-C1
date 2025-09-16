@@ -15,6 +15,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { toast } from "@/hooks/use-toast";
 import { getProducts, getCategories } from "../../../lib/api";
 import { AxiosError } from "axios";
+import FilterSection from "@/components/filter-seciton";
 
 interface Product {
   id: number;
@@ -235,15 +236,13 @@ export default function ProductsPage() {
       </div>
 
       <div className="flex flex-col md:flex-row gap-8">
-        <div className="hidden md:block w-1/4 max-w-xs">
-          <div className="sticky top-24 space-y-6">
-            <div className="flex items-center gap-2 mb-6">
-              <SlidersHorizontal className="h-5 w-5" />
-              <h2 className="text-xl font-bold">Filtres</h2>
-            </div>
+      <div className="hidden md:block w-1/4 max-w-xs">
+        <div className="sticky top-24">
+          <FilterSection>
             <FilterContent />
-          </div>
+          </FilterSection>
         </div>
+      </div>
 
         <div className="w-full md:w-3/4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

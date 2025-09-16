@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import Link from "next/link";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { getSavedItems, removeSavedItem } from "../../lib/api";
 import { toast } from "@/hooks/use-toast";
 import { AxiosError } from "axios";
@@ -23,8 +23,8 @@ export default function SavedItems() {
       };
     };
   };
-  
-    const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
+
+  const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,12 +33,13 @@ export default function SavedItems() {
       setLoading(true);
       try {
         const response = await getSavedItems();
-        setSavedItems(response.data || []);
+        setSavedItems(response.data || []); // ✅ Corrigé ici
         setLoading(false);
       } catch (error: unknown) {
-        const errorMessage = error instanceof AxiosError && error.response?.data?.message
-          ? error.response.data.message
-          : "Impossible de charger les articles sauvegardés";
+        const errorMessage =
+          error instanceof AxiosError && error.response?.data?.message
+            ? error.response.data.message
+            : "Impossible de charger les articles sauvegardés";
         setError(errorMessage);
         setLoading(false);
         toast({
@@ -53,16 +54,17 @@ export default function SavedItems() {
 
   const handleRemoveItem = async (productId: number) => {
     try {
-      await removeSavedItem(productId);
-      setSavedItems(savedItems.filter(item => item.product_id !== productId));
+      await removeSavedItem(productId); // ✅ Utilisation de product_id
+      setSavedItems(savedItems.filter((item) => item.product_id !== productId));
       toast({
         title: "Succès",
         description: "Article retiré des favoris",
       });
     } catch (error: unknown) {
-      const errorMessage = error instanceof AxiosError && error.response?.data?.message
-        ? error.response.data.message
-        : "Impossible de retirer l'article des favoris";
+      const errorMessage =
+        error instanceof AxiosError && error.response?.data?.message
+          ? error.response.data.message
+          : "Impossible de retirer l'article des favoris";
       toast({
         title: "Erreur",
         description: errorMessage,
@@ -91,17 +93,23 @@ export default function SavedItems() {
             <Card key={item.id} className="overflow-hidden">
               <CardContent className="p-0">
                 <div className="relative aspect-square overflow-hidden bg-muted">
-                  <Image 
-                    src={item.product?.image && !item.product.image.startsWith('/') ? item.product.image : item.product?.image && item.product.image.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${item.product.image}` : "/placeholder.svg"} 
-                    alt={item.product?.name || "Produit"} 
-                    fill 
-                    className="object-cover" 
+                  <Image
+                    src={
+                      item.product?.image
+                        ? item.product.image.startsWith("/")
+                          ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${item.product.image}`
+                          : item.product.image
+                        : "/placeholder.svg"
+                    }
+                    alt={item.product?.name || "Produit"}
+                    fill
+                    className="object-cover"
                   />
                   <Button
                     variant="ghost"
                     size="icon"
                     className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm hover:bg-background/90"
-                    onClick={() => handleRemoveItem(item.product_id)}
+                    onClick={() => handleRemoveItem(item.product_id)} // ✅ product_id
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -123,10 +131,13 @@ export default function SavedItems() {
                 <p className="font-bold mt-1">{item.product?.price} €</p>
 
                 <div className="w-full mt-4">
-                  <Button className="w-full" disabled={(item.product?.stock ?? 0) <= 0}>
-                    {(item.product?.stock ?? 0) > 0 ? "Ajouter au panier" : "Rupture de stock"}
-                  </Button>
+                  <Link href={`/products/${item.product_id}`} className="w-full">
+                    <Button className="w-full">
+                      Voir l'article
+                    </Button>
+                  </Link>
                 </div>
+
               </CardFooter>
             </Card>
           ))}
@@ -148,14 +159,14 @@ export default function SavedItems() {
             </svg>
           </div>
           <h2 className="text-2xl font-bold mb-2">No saved items</h2>
-          <p className="text-muted-foreground mb-6">Vous n&pos;avez pas encore sauvegardé d&pos;articles.</p>
+          <p className="text-muted-foreground mb-6">
+            Vous n'avez pas encore sauvegardé d'articles.
+          </p>
           <Button asChild>
             <Link href="/products">Start Shopping</Link>
           </Button>
         </div>
       )}
     </div>
-  )
+  );
 }
-
-

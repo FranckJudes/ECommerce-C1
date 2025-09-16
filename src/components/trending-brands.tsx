@@ -41,22 +41,30 @@ export default function TrendingBrands() {
   if (loading) return <p>Chargement des marques...</p>;
   if (error) return <p>Erreur : {error}</p>;
 
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-      {brands.map((brand) => (
-        <Link href="#">
+return (
+  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+    {brands.map((brand) => (
+      <Link href="#" key={brand.id}> {/* ✅ clé unique ici */}
         <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all">
-        <CardContent className="flex flex-col items-center justify-center p-6">
-          <div className="relative w-16 h-16 mb-3">
-            <Image src={brand.logo && !brand.logo.startsWith('/') ? brand.logo : brand.logo && brand.logo.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${brand.logo}` : "/placeholder.svg"} alt={brand.name} fill className="object-contain" />
-          </div>
-          <h3 className="font-medium text-center">{brand.name}</h3>
-          <p className="text-xs text-muted-foreground text-center">{brand.product_count} Produits</p>
-        </CardContent>
-      </Card>
-                  
-       </Link>
-      ))}
-    </div>
-  );
+          <CardContent className="flex flex-col items-center justify-center p-6">
+            <div className="relative w-16 h-16 mb-3">
+              <Image 
+                src={brand.logo && !brand.logo.startsWith('/') 
+                  ? brand.logo 
+                  : brand.logo && brand.logo.startsWith('/') 
+                    ? `${process.env.NEXT_PUBLIC_API_BASE_IMAGE}${brand.logo}` 
+                    : "/placeholder.svg"} 
+                alt={brand.name} 
+                fill 
+                className="object-contain" 
+              />
+            </div>
+            <h3 className="font-medium text-center">{brand.name}</h3>
+            <p className="text-xs text-muted-foreground text-center">{brand.product_count} Produits</p>
+          </CardContent>
+        </Card>
+      </Link>
+    ))}
+  </div>
+);
 }

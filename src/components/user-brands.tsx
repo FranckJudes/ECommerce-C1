@@ -11,8 +11,10 @@ import { AxiosError } from "axios";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Pencil, Trash2, Plus } from "lucide-react";
+import { useAuth } from "../../lib/auth-context";
 
 export default function UserBrands() {
+  const { user } = useAuth();
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +22,7 @@ export default function UserBrands() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
+    if (!user || user.role !== "admin") return; 
     const fetchBrands = async () => {
       setLoading(true);
       try {

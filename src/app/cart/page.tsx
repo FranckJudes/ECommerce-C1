@@ -9,6 +9,9 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 // Import direct depuis le fichier .tsx
 import { useCart } from "@/hooks/use-cart"
+import { useRouter } from "next/navigation"
+import { useAuth } from "../../../lib/auth-context"
+import { toast } from "react-toastify"
 
 export default function CartPage() {
   // Destructuration avec les noms exacts définis dans le hook
@@ -16,6 +19,19 @@ export default function CartPage() {
   const [promoCode, setPromoCode] = useState("")
   const [isApplyingPromo, setIsApplyingPromo] = useState(false)
 
+  const { user } = useAuth()
+  const router = useRouter()
+
+  const handleCheckout = () => {
+    if (!user) {
+      // Rediriger vers la page de connexion si non connecté
+      toast.error("Veuillez vous connecter pour passer à la caisse.")
+      router.push("/auth/sign-in")
+    } else {
+      // Aller à la page checkout si connecté
+      router.push("/checkout")
+    }
+  }
   const handleQuantityChange = (id: string, newQuantity: number) => {
     if (newQuantity > 0) {
       updateQuantity(id, newQuantity)
@@ -169,9 +185,9 @@ export default function CartPage() {
                 </div>
 
                 <div className="pt-4">
-                  <Button asChild className="w-full">
-                    <Link href="/checkout">Passer à la caisse</Link>
-                  </Button>
+                <Button className="w-full" onClick={handleCheckout}>
+                  Passer à la caisse
+                </Button>
                 </div>
               </div>
             </div>

@@ -68,7 +68,7 @@ export default function CheckoutPage() {
   });
   const [shippingMethod, setShippingMethod] = useState<"standard" | "express">("standard");
   const [isLoading, setIsLoading] = useState(false);
-  const { cart = [], clearCart } = useCart() as unknown as { cart: CartItem[]; clearCart: () => void };
+  const { items: cart, clearCart } = useCart();
   const { user } = useAuth();
   const router = useRouter();
 
@@ -663,7 +663,7 @@ export default function CheckoutPage() {
         </div>
 
         <div className="w-full lg:w-1/3">
-          <CheckoutSummary />
+        <CheckoutSummary shippingMethod={shippingMethod} />
         </div>
       </div>
     </div>
